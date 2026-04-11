@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Songs</title>
+</head>
+<body>
+
+    <h1>Songs</h1>
+
+    {% if songs %}
+        <ul>
+            {% for song in songs %}
+                <li><b>{{ song.name }}</b> by {{ song.artist }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No songs found.</p>
+    {% endif %}
+
+</body>
+</html>
