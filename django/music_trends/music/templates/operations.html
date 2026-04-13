@@ -37,26 +37,35 @@
   </form>
 </div>
 
-<!-- ── Edit Popularity ────────────────────────────────────────────── -->
+<!-- ── Edit Numeric Attribute ─────────────────────────────────────── -->
 <div class="form-card section">
-  <h2>Edit Song Popularity <span class="badge badge-accent">DELETE / INSERT</span></h2>
+  <h2>Correct Song Attribute <span class="badge badge-accent">DELETE / INSERT</span></h2>
   <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-    Replaces the current popularity value for a song with a new one.
+    Replaces an existing numeric attribute value for a song.
   </p>
   <form method="post">
     {% csrf_token %}
-    <input type="hidden" name="operation" value="edit_popularity" />
+    <input type="hidden" name="operation" value="edit_attribute" />
     <div class="form-grid">
       <div class="form-group">
         <label for="ep_song">Song Name (exact)</label>
         <input id="ep_song" name="song_name" type="text" required placeholder="e.g. Blinding Lights" />
       </div>
       <div class="form-group">
-        <label for="ep_pop">New Popularity (0 – 100)</label>
-        <input id="ep_pop" name="popularity" type="number" step="0.1" min="0" max="100" required />
+        <label for="ep_attr">Attribute</label>
+        <select id="ep_attr" name="attribute" required>
+          <option value="energy">energy</option>
+          <option value="danceability">danceability</option>
+          <option value="valence">valence</option>
+          <option value="tempo">tempo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="ep_value">New Value</label>
+        <input id="ep_value" name="value" type="number" step="0.01" required />
       </div>
     </div>
-    <button type="submit">Update Popularity</button>
+    <button type="submit">Update Attribute</button>
   </form>
 </div>
 
@@ -108,6 +117,87 @@
     </div>
     <button type="submit">Add Chart Entry</button>
   </form>
+</div>
+
+<!-- ── Remove Chart Entry by URI ─────────────────────────────────── -->
+<div class="form-card section">
+  <h2>Remove Chart Entry by URI <span class="badge" style="background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5;">DELETE WHERE</span></h2>
+  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+    Removes a known <code>type:ChartEntry</code> resource by its URI.
+  </p>
+  <form method="post" onsubmit="return confirm('Delete this chart entry URI?')">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="remove_chart_entry" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="rce_uri">ChartEntry URI</label>
+        <input id="rce_uri" name="entry_uri" type="text" required placeholder="http://music.org/entry/manual-xxxx" />
+      </div>
+    </div>
+    <button type="submit" class="btn-danger">Remove Chart Entry</button>
+  </form>
+</div>
+
+<!-- ── Validation SELECT Queries ─────────────────────────────────── -->
+<div class="form-card section">
+  <h2>Validation Queries <span class="badge">SELECT</span></h2>
+  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+    Run read-only queries for quick data validation.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="run_validation" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="vq_type">Validation Type</label>
+        <select id="vq_type" name="validation_type" required>
+          <option value="base_list">Base list (songs + artists)</option>
+          <option value="by_artist">Search by artist</option>
+          <option value="by_genre">Search by genre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="vq_artist">Artist (for by_artist)</label>
+        <input id="vq_artist" name="artist_name" type="text" placeholder="e.g. Drake" />
+      </div>
+      <div class="form-group">
+        <label for="vq_genre">Genre (for by_genre)</label>
+        <input id="vq_genre" name="genre" type="text" placeholder="e.g. pop" />
+      </div>
+    </div>
+    <button type="submit">Run Validation Query</button>
+  </form>
+
+  {% if validation_results %}
+  <div class="card mt-2" style="padding:1rem;">
+    <h3 style="margin-bottom:0.75rem;">Results ({{ validation_type }})</h3>
+    <table>
+      <thead>
+        <tr>
+          {% for col in validation_columns %}
+            <th>{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in validation_rows %}
+        <tr>
+          {% for value in row %}
+            <td>{{ value }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h2>Security Note</h2>
+  <p class="text-muted text-sm mt-1">
+    Inputs are validated in backend and attribute updates are restricted to an allow-list of known predicates.
+  </p>
 </div>
 
 {% endblock %}

@@ -18,22 +18,12 @@
                value="{{ genre_query|default:'' }}" placeholder="e.g. pop" />
       </div>
       <div class="form-group">
-        <label for="popularity_min">Popularity Min</label>
-        <input id="popularity_min" name="popularity_min" type="number"
-               step="1" min="0" max="100" value="{{ popularity_min|default:'' }}" />
-      </div>
-      <div class="form-group">
-        <label for="popularity_max">Popularity Max</label>
-        <input id="popularity_max" name="popularity_max" type="number"
-               step="1" min="0" max="100" value="{{ popularity_max|default:'' }}" />
-      </div>
-      <div class="form-group">
         <label for="top_metric">Sort by</label>
         <select id="top_metric" name="top_metric">
           <option value=""           {% if not top_metric %}selected{% endif %}>Default</option>
-          <option value="popularity" {% if top_metric == 'popularity' %}selected{% endif %}>Popularity</option>
           <option value="energy"     {% if top_metric == 'energy' %}selected{% endif %}>Energy</option>
           <option value="danceability" {% if top_metric == 'danceability' %}selected{% endif %}>Danceability</option>
+          <option value="valence" {% if top_metric == 'valence' %}selected{% endif %}>Valence</option>
         </select>
       </div>
     </div>
@@ -46,6 +36,7 @@
 {% endif %}
 
 {% if songs %}
+  <p class="text-muted text-sm mt-1" style="margin-bottom: 0.8rem;">{{ total_count }} songs found.</p>
   <div class="card">
     <table>
       <thead>
@@ -53,9 +44,9 @@
           <th>Song</th>
           <th>Artist</th>
           <th>Genre</th>
-          <th>Popularity</th>
           <th>Energy</th>
           <th>Danceability</th>
+          <th>Valence</th>
         </tr>
       </thead>
       <tbody>
@@ -70,13 +61,25 @@
               <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td>{{ song.popularity }}</td>
           <td>{{ song.energy }}</td>
           <td>{{ song.danceability }}</td>
+          <td>{{ song.valence }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  <div class="card mt-2" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+    <div class="text-muted text-sm">Page {{ page }}</div>
+    <div style="display:flex;gap:0.6rem;">
+      {% if has_previous %}
+        <a class="btn" href="?artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ previous_page }}">Previous</a>
+      {% endif %}
+      {% if has_next %}
+        <a class="btn" href="?artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ next_page }}">Next</a>
+      {% endif %}
+    </div>
   </div>
 {% else %}
   <div class="empty-state">No songs found. Try adjusting your filters.</div>

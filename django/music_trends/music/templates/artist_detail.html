@@ -22,20 +22,54 @@
   </p>
   {% endif %}
 
-  <div class="stats-grid mt-2 section" style="max-width: 640px;">
+  <div class="stats-grid mt-2 section">
     <div class="stat-card">
       <div class="stat-number">{{ artist.song_count }}</div>
       <div class="stat-label">Songs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ artist.chart_entries }}</div>
+      <div class="stat-label">Chart Entries</div>
     </div>
     <div class="stat-card">
       <div class="stat-number">{% if artist.best_rank != '—' %}#{{ artist.best_rank }}{% else %}—{% endif %}</div>
       <div class="stat-label">Best Chart Rank</div>
     </div>
     <div class="stat-card">
-      <div class="stat-number">{{ artist.avg_popularity }}</div>
-      <div class="stat-label">Avg. Popularity</div>
+      <div class="stat-number">{{ artist.avg_energy }}</div>
+      <div class="stat-label">Avg. Energy</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ artist.avg_danceability }}</div>
+      <div class="stat-label">Avg. Danceability</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ artist.avg_valence }}</div>
+      <div class="stat-label">Avg. Valence</div>
     </div>
   </div>
+
+  {% if artist.top_genres %}
+  <div class="card section">
+    <h2>Most Frequent Genres</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Genre</th>
+          <th>Songs</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for genre, count in artist.top_genres %}
+        <tr>
+          <td><span class="badge">{{ genre }}</span></td>
+          <td>{{ count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
 
   <div class="card">
     <h2>Songs</h2>
@@ -45,9 +79,9 @@
         <tr>
           <th>Song</th>
           <th>Genre</th>
-          <th>Popularity</th>
           <th>Energy</th>
           <th>Danceability</th>
+          <th>Valence</th>
         </tr>
       </thead>
       <tbody>
@@ -61,9 +95,9 @@
               <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td>{% if song.popularity %}{{ song.popularity }}{% else %}—{% endif %}</td>
           <td>{% if song.energy %}{{ song.energy }}{% else %}—{% endif %}</td>
           <td>{% if song.danceability %}{{ song.danceability }}{% else %}—{% endif %}</td>
+          <td>{% if song.valence %}{{ song.valence }}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
