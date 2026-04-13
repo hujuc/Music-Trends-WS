@@ -46,7 +46,7 @@ def split_artists(raw_artist_str):
     # tirar as aspas 
     raw_artist_str = raw_artist_str.replace('"', '').replace("'", "")
 
-    cleaned = re.sub(r'featuring|feat\.?|ft\.?|and|&', ',', raw_artist_str, flags=re.I)
+    cleaned = re.sub(r'\b(featuring|feat\.?|ft\.?|and|&)(?=\s|,|$)', ',', raw_artist_str, flags=re.I)
 
     parts = [p.strip() for p in cleaned.split(',') if p.strip()]
 
