@@ -7,10 +7,51 @@
 
     <h1>Songs</h1>
 
+    <form method="get" style="margin-bottom: 16px; display: grid; gap: 8px; max-width: 700px;">
+        <div>
+            <label for="artist">Filter by artist:</label>
+            <input id="artist" name="artist" type="text" value="{{ artist_query|default:'' }}" />
+        </div>
+
+        <div>
+            <label for="genre">Filter by genre:</label>
+            <input id="genre" name="genre" type="text" value="{{ genre_query|default:'' }}" />
+        </div>
+
+        <div>
+            <label for="popularity_min">Popularity min:</label>
+            <input id="popularity_min" name="popularity_min" type="number" step="0.1" value="{{ popularity_min|default:'' }}" />
+
+            <label for="popularity_max" style="margin-left: 12px;">Popularity max:</label>
+            <input id="popularity_max" name="popularity_max" type="number" step="0.1" value="{{ popularity_max|default:'' }}" />
+        </div>
+
+        <div>
+            <label for="top_metric">Top by:</label>
+            <select id="top_metric" name="top_metric">
+                <option value="" {% if not top_metric %}selected{% endif %}>None</option>
+                <option value="energy" {% if top_metric == 'energy' %}selected{% endif %}>Energy</option>
+                <option value="danceability" {% if top_metric == 'danceability' %}selected{% endif %}>Danceability</option>
+            </select>
+        </div>
+
+        <button type="submit">Pesquisar</button>
+    </form>
+
+    {% if error_message %}
+        <p style="color: #a12222;"><strong>Error:</strong> {{ error_message }}</p>
+    {% endif %}
+
     {% if songs %}
         <ul>
             {% for song in songs %}
-                <li><b>{{ song.name }}</b> by {{ song.artist }}</li>
+                <li>
+                    <b>{{ song.name }}</b> by {{ song.artist }}
+                    | genre: {{ song.genre }}
+                    | popularity: {{ song.popularity }}
+                    | energy: {{ song.energy }}
+                    | danceability: {{ song.danceability }}
+                </li>
             {% endfor %}
         </ul>
     {% else %}

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -122,3 +123,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# GraphDB / SPARQL settings
+GRAPHDB_ENDPOINT = os.getenv(
+    'GRAPHDB_ENDPOINT',
+    'http://localhost:7200/repositories/music',
+)
+GRAPHDB_TIMEOUT = int(os.getenv('GRAPHDB_TIMEOUT', '10'))
+
+SPARQL_PREFIXES = {
+    'pred': 'http://music.org/pred/',
+    'type': 'http://music.org/type/',
+}
