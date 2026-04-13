@@ -759,3 +759,89 @@ def insights(request):
 
 def about_data(request):
     return render(request, 'about_data.html', {})
+
+# ── Billboard ─────────────────────────────────────────────────────────────────
+
+def billboard(request):
+    ctx = {}
+    try:
+        # Get all distinct available dates (weeks)
+        dates_bindings = run_select("""
+            SELECT DISTINCT ?date
+            WHERE {
+              ?entry a type:ChartEntry ;
+                     pred:date ?date .
+            }
+            ORDER BY DESC(?date)
+        """)
+        dates = [_val(r, 'date') for r in dates_bindings if _val(r, 'date') != '—']
+        
+        date_tree = {}
+        for d in dates:
+            parts = d.split('-')
+            if len(parts) == 3:
+                y, m, day = parts
+                if y not in date_tree:
+                    date_tree[y] = {}
+                if m not in date_tree[y]:
+                    date_tree[y][m] = []
+                date_tree[y][m].append(day)
+                
+        ctx['date_tree'] = date_tree
+        ctx['month_names'] = MONTH_NAMES
+        
+        selected_date = request.GET.get('date', '').strip()
+        if not selected_date:
+            year = request.GET.get('year', '').strip()
+            month = request.GET.get('month', '').strip()
+            day = request.GET.get('day', '').strip()
+            if year and month and day:
+                selected_date = f"{year}-{month}-{day}"
+                
+        if not selected_date and dates:
+            selected_date = dates[0]
+            
+        ctx['selected_date'] = selected_date
+        
+        if selected_date and len(selected_date.split('-')) == 3:
+            y, m, d = selected_date.split('-')
+            ctx['sel_year'] = y
+            ctx['sel_month'] = m
+            ctx['sel_day'] = d
+        
+        if selected_date:
+            date_lit = sparql_escape_literal(selected_date)
+            # Query chart entries for the selected week
+            entries_bindings = run_select(f"""
+                SELECT ?rank ?weeks ?song ?songName ?artist ?artistName
+                WHERE {{
+                  ?entry a type:ChartEntry ;
+                         pred:date {date_lit} ;
+                         pred:rank ?rank ;
+                         pred:weeks ?weeks ;
+                         pred:song ?song .
+                  ?song pred:name ?songName ;
+                        pred:mainArtist ?artist .
+                  ?artist pred:name ?artistName .
+                }}
+            """)
+            
+            entries = []
+            for r in entries_bindings:
+                entries.append({
+                    'rank': int(_val(r, 'rank', '0')),
+                    'weeks': int(_val(r, 'weeks', '0')),
+                    'song_uri': _val(r, 'song'),
+                    'song_name': _val(r, 'songName'),
+                    'artist_uri': _val(r, 'artist'),
+                    'artist_name': _val(r, 'artistName'),
+                })
+            
+            # Sort numerically by rank
+            entries.sort(key=lambda x: x['rank'])
+            ctx['entries'] = entries
+            
+    except SparqlClientError as exc:
+        ctx['error_message'] = str(exc)
+        
+    return render(request, 'billboard.html', ctx)
