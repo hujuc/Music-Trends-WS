@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{% if song %}{{ song.name }} — {% endif %}Music Trends{% endblock %}
+
+{% block content %}
+
+{% if error_message %}
+  <div class="alert alert-error">{{ error_message }}</div>
+  <a href="{% url 'songs' %}" class="btn">← Back to Songs</a>
+
+{% elif song %}
+
+  <p class="text-muted text-sm" style="margin-bottom: 1rem;">
+    <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
+  </p>
+
+  <h1>{{ song.name }}</h1>
+  <p class="text-muted mt-1">
+    by <a href="{% url 'artist_detail' %}?uri={{ song.main_artist_uri }}">{{ song.main_artist_name }}</a>
+    {% if song.album_name %}&nbsp;·&nbsp;{{ song.album_name }}{% endif %}
+  </p>
+
+  <div class="two-col mt-2">
+
+    <!-- Left column: details + chart history -->
+    <div>
+      <div class="card section">
+        <h2>Details</h2>
+        <table>
+          <tbody>
+            {% if song.genres %}
+            <tr>
+              <td class="text-muted text-sm" style="width:40%">Genre</td>
+              <td>{% for g in song.genres %}<span class="badge">{{ g }}</span> {% endfor %}</td>
+            </tr>
+            {% endif %}
+            {% if song.popularity %}
+            <tr>
+              <td class="text-muted text-sm">Popularity</td>
+              <td>{{ song.popularity }} / 100</td>
+            </tr>
+            {% endif %}
+            {% if song.tempo %}
+            <tr>
+              <td class="text-muted text-sm">Tempo</td>
+              <td>{{ song.tempo }} BPM</td>
+            </tr>
+            {% endif %}
+            {% if song.duration_min %}
+            <tr>
+              <td class="text-muted text-sm">Duration</td>
+              <td>{{ song.duration_min }}</td>
+            </tr>
+            {% endif %}
+            {% if song.explicit %}
+            <tr>
+              <td class="text-muted text-sm">Explicit</td>
+              <td>{{ song.explicit }}</td>
+            </tr>
+            {% endif %}
+            {% if song.featured_artists %}
+            <tr>
+              <td class="text-muted text-sm">Featured</td>
+              <td>
+                {% for fa in song.featured_artists %}
+                  <a href="{% url 'artist_detail' %}?uri={{ fa.uri }}">{{ fa.name }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if chart_entries %}
+      <div class="card">
+        <h2>Chart History</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Rank</th>
+              <th>Weeks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in chart_entries %}
+            <tr>
+              <td>{{ entry.date }}</td>
+              <td>#{{ entry.rank }}</td>
+              <td>{{ entry.weeks }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right column: audio features -->
+    <div class="card">
+      <h2>Audio Features</h2>
+      {% if song.audio_features %}
+        {% for feat in song.audio_features %}
+        <div class="feature-row">
+          <div class="feature-header">
+            <span class="feature-label">{{ feat.label }}</span>
+            <span class="feature-value">{{ feat.value_display }}</span>
+          </div>
+          <div class="feature-bar">
+            <div class="feature-bar-fill" style="width: {{ feat.pct }}%;"></div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted text-sm">No audio features available.</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+{% else %}
+  <p class="text-muted">Song not found.</p>
+  <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>
+{% endif %}
+
+{% endblock %}

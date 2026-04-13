@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Operations — Music Trends{% endblock %}
+
+{% block content %}
+<h1>SPARQL Operations</h1>
+<p class="text-muted text-sm section">
+  Manage data directly in the GraphDB triplestore via SPARQL INSERT / DELETE / UPDATE.
+</p>
+
+{% if success_message %}
+  <div class="alert alert-success">{{ success_message }}</div>
+{% endif %}
+{% if error_message %}
+  <div class="alert alert-error">{{ error_message }}</div>
+{% endif %}
+
+<!-- ── Add Genre ───────────────────────────────────────────────────── -->
+<div class="form-card section">
+  <h2>Add Genre to Song <span class="badge badge-accent">INSERT</span></h2>
+  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+    Inserts a new genre tag for an existing song (matched by exact name).
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="add_genre" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="ag_song">Song Name (exact)</label>
+        <input id="ag_song" name="song_name" type="text" required placeholder="e.g. Blinding Lights" />
+      </div>
+      <div class="form-group">
+        <label for="ag_genre">New Genre</label>
+        <input id="ag_genre" name="genre" type="text" required placeholder="e.g. alt-pop" />
+      </div>
+    </div>
+    <button type="submit">Add Genre</button>
+  </form>
+</div>
+
+<!-- ── Edit Popularity ────────────────────────────────────────────── -->
+<div class="form-card section">
+  <h2>Edit Song Popularity <span class="badge badge-accent">DELETE / INSERT</span></h2>
+  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+    Replaces the current popularity value for a song with a new one.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="edit_popularity" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="ep_song">Song Name (exact)</label>
+        <input id="ep_song" name="song_name" type="text" required placeholder="e.g. Blinding Lights" />
+      </div>
+      <div class="form-group">
+        <label for="ep_pop">New Popularity (0 – 100)</label>
+        <input id="ep_pop" name="popularity" type="number" step="0.1" min="0" max="100" required />
+      </div>
+    </div>
+    <button type="submit">Update Popularity</button>
+  </form>
+</div>
+
+<!-- ── Remove Featured Artist ─────────────────────────────────────── -->
+<div class="form-card section">
+  <h2>Remove Featured Artists <span class="badge" style="background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5;">DELETE WHERE</span></h2>
+  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+    Removes all <code>pred:featuredArtist</code> triples from a song.
+  </p>
+  <form method="post" onsubmit="return confirm('Remove all featured artists from this song?')">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="remove_featured" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="rf_song">Song Name (exact)</label>
+        <input id="rf_song" name="song_name" type="text" required placeholder="e.g. Old Town Road" />
+      </div>
+    </div>
+    <button type="submit" class="btn-danger">Remove Featured Artists</button>
+  </form>
+</div>
+
+<!-- ── Add Chart Entry ────────────────────────────────────────────── -->
+<div class="form-card section">
+  <h2>Add Chart Entry <span class="badge badge-accent">INSERT</span></h2>
+  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+    Creates a new <code>type:ChartEntry</code> linked to an existing song.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="add_chart_entry" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="ace_song">Song Name (exact)</label>
+        <input id="ace_song" name="song_name" type="text" required placeholder="e.g. Blinding Lights" />
+      </div>
+      <div class="form-group">
+        <label for="ace_rank">Chart Rank</label>
+        <input id="ace_rank" name="rank" type="number" min="1" required />
+      </div>
+      <div class="form-group">
+        <label for="ace_weeks">Weeks on Chart</label>
+        <input id="ace_weeks" name="weeks" type="number" min="1" required />
+      </div>
+      <div class="form-group">
+        <label for="ace_date">Date</label>
+        <input id="ace_date" name="date" type="date" required />
+      </div>
+    </div>
+    <button type="submit">Add Chart Entry</button>
+  </form>
+</div>
+
+{% endblock %}

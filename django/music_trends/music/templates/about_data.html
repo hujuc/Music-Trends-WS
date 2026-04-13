@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}About Data — Music Trends{% endblock %}
+
+{% block content %}
+<h1>About the Data</h1>
+<p class="text-muted text-sm section">Data sources, RDF schema, and setup instructions.</p>
+
+<div class="two-col">
+
+  <!-- Left column -->
+  <div>
+    <div class="card section">
+      <h2>Data Sources</h2>
+      <p class="text-sm mt-1">The dataset combines multiple Kaggle sources:</p>
+      <ul style="margin-top: 0.75rem; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.6rem;">
+        <li class="text-sm"><code>hot100.csv</code> — Billboard Hot 100 chart history</li>
+        <li class="text-sm"><code>global200.csv</code> — Spotify Global 200 streaming chart</li>
+        <li class="text-sm"><code>spotify-tracks-dataset-detailed.csv</code> — Spotify audio features</li>
+        <li class="text-sm"><code>radio.csv</code> — Radio chart data</li>
+        <li class="text-sm"><code>digital.csv</code> — Digital sales chart</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>RDF Schema</h2>
+      <p class="text-sm mt-1">Namespaces:</p>
+      <div style="margin-top: 0.75rem; font-family: 'Fira Code', monospace; font-size: 0.8rem;
+                  color: var(--accent2); line-height: 2; background: var(--surface2);
+                  border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem;">
+        PREFIX pred: &lt;http://music.org/pred/&gt;<br />
+        PREFIX type: &lt;http://music.org/type/&gt;<br />
+        PREFIX xsd:  &lt;http://www.w3.org/2001/XMLSchema#&gt;
+      </div>
+      <p class="text-sm mt-2">
+        Classes:&nbsp;
+        <span class="badge">type:Song</span>&nbsp;
+        <span class="badge">type:Artist</span>&nbsp;
+        <span class="badge">type:ChartEntry</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div>
+    <div class="card section">
+      <h2>Setup Instructions</h2>
+      <ol style="padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem; margin-top: 0.75rem;">
+        <li class="text-sm">
+          <strong>Create a virtual environment &amp; install dependencies</strong><br />
+          <code>python3 -m venv .venv &amp;&amp; source .venv/bin/activate</code><br />
+          <code>pip install -r django/music_trends/requirements.txt</code>
+        </li>
+        <li class="text-sm">
+          <strong>Generate the RDF file</strong><br />
+          <code>python normalizing_data/create_rdf.py</code>
+        </li>
+        <li class="text-sm">
+          <strong>Import <code>music.ttl</code> into GraphDB</strong><br />
+          Use the GraphDB Workbench (<em>Import → RDF Files</em>) or the REST API.
+          Target repository: <code>music</code>.
+        </li>
+        <li class="text-sm">
+          <strong>Start the Django server</strong><br />
+          <code>cd django/music_trends &amp;&amp; python manage.py runserver</code>
+        </li>
+        <li class="text-sm">
+          <strong>Open in browser</strong><br />
+          <code>http://127.0.0.1:8000/</code>
+        </li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h2>Key Predicates</h2>
+      <table>
+        <thead>
+          <tr><th>Predicate</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>pred:name</code></td><td>Name of song or artist</td></tr>
+          <tr><td><code>pred:mainArtist</code></td><td>Primary artist of a song</td></tr>
+          <tr><td><code>pred:featuredArtist</code></td><td>Featured artist(s)</td></tr>
+          <tr><td><code>pred:genre</code></td><td>Musical genre</td></tr>
+          <tr><td><code>pred:popularity</code></td><td>Spotify popularity (0–100)</td></tr>
+          <tr><td><code>pred:energy</code></td><td>Audio energy (0–1)</td></tr>
+          <tr><td><code>pred:danceability</code></td><td>Danceability score (0–1)</td></tr>
+          <tr><td><code>pred:valence</code></td><td>Musical positivity (0–1)</td></tr>
+          <tr><td><code>pred:tempo</code></td><td>BPM</td></tr>
+          <tr><td><code>pred:song</code></td><td>ChartEntry → Song link</td></tr>
+          <tr><td><code>pred:rank</code></td><td>Chart position</td></tr>
+          <tr><td><code>pred:weeks</code></td><td>Weeks on chart</td></tr>
+          <tr><td><code>pred:date</code></td><td>Chart entry date (YYYY-MM-DD)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

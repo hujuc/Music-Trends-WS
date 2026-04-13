@@ -1,62 +1,84 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Songs</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}Songs Explorer — Music Trends{% endblock %}
 
-    <h1>Songs</h1>
+{% block content %}
+<h1>Songs Explorer</h1>
 
-    <form method="get" style="margin-bottom: 16px; display: grid; gap: 8px; max-width: 700px;">
-        <div>
-            <label for="artist">Filter by artist:</label>
-            <input id="artist" name="artist" type="text" value="{{ artist_query|default:'' }}" />
-        </div>
+<div class="form-card section">
+  <form method="get">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="artist">Artist</label>
+        <input id="artist" name="artist" type="text"
+               value="{{ artist_query|default:'' }}" placeholder="e.g. Drake" />
+      </div>
+      <div class="form-group">
+        <label for="genre">Genre</label>
+        <input id="genre" name="genre" type="text"
+               value="{{ genre_query|default:'' }}" placeholder="e.g. pop" />
+      </div>
+      <div class="form-group">
+        <label for="popularity_min">Popularity Min</label>
+        <input id="popularity_min" name="popularity_min" type="number"
+               step="1" min="0" max="100" value="{{ popularity_min|default:'' }}" />
+      </div>
+      <div class="form-group">
+        <label for="popularity_max">Popularity Max</label>
+        <input id="popularity_max" name="popularity_max" type="number"
+               step="1" min="0" max="100" value="{{ popularity_max|default:'' }}" />
+      </div>
+      <div class="form-group">
+        <label for="top_metric">Sort by</label>
+        <select id="top_metric" name="top_metric">
+          <option value=""           {% if not top_metric %}selected{% endif %}>Default</option>
+          <option value="popularity" {% if top_metric == 'popularity' %}selected{% endif %}>Popularity</option>
+          <option value="energy"     {% if top_metric == 'energy' %}selected{% endif %}>Energy</option>
+          <option value="danceability" {% if top_metric == 'danceability' %}selected{% endif %}>Danceability</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit">Search</button>
+  </form>
+</div>
 
-        <div>
-            <label for="genre">Filter by genre:</label>
-            <input id="genre" name="genre" type="text" value="{{ genre_query|default:'' }}" />
-        </div>
+{% if error_message %}
+  <div class="alert alert-error">{{ error_message }}</div>
+{% endif %}
 
-        <div>
-            <label for="popularity_min">Popularity min:</label>
-            <input id="popularity_min" name="popularity_min" type="number" step="0.1" value="{{ popularity_min|default:'' }}" />
-
-            <label for="popularity_max" style="margin-left: 12px;">Popularity max:</label>
-            <input id="popularity_max" name="popularity_max" type="number" step="0.1" value="{{ popularity_max|default:'' }}" />
-        </div>
-
-        <div>
-            <label for="top_metric">Top by:</label>
-            <select id="top_metric" name="top_metric">
-                <option value="" {% if not top_metric %}selected{% endif %}>None</option>
-                <option value="energy" {% if top_metric == 'energy' %}selected{% endif %}>Energy</option>
-                <option value="danceability" {% if top_metric == 'danceability' %}selected{% endif %}>Danceability</option>
-            </select>
-        </div>
-
-        <button type="submit">Pesquisar</button>
-    </form>
-
-    {% if error_message %}
-        <p style="color: #a12222;"><strong>Error:</strong> {{ error_message }}</p>
-    {% endif %}
-
-    {% if songs %}
-        <ul>
-            {% for song in songs %}
-                <li>
-                    <b>{{ song.name }}</b> by {{ song.artist }}
-                    | genre: {{ song.genre }}
-                    | popularity: {{ song.popularity }}
-                    | energy: {{ song.energy }}
-                    | danceability: {{ song.danceability }}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No songs found.</p>
-    {% endif %}
-
-</body>
-</html>
+{% if songs %}
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Song</th>
+          <th>Artist</th>
+          <th>Genre</th>
+          <th>Popularity</th>
+          <th>Energy</th>
+          <th>Danceability</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for song in songs %}
+        <tr>
+          <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
+          <td><a href="{% url 'artist_detail' %}?uri={{ song.artist_uri }}">{{ song.artist }}</a></td>
+          <td>
+            {% if song.genre != '-' %}
+              <span class="badge">{{ song.genre }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>{{ song.popularity }}</td>
+          <td>{{ song.energy }}</td>
+          <td>{{ song.danceability }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-state">No songs found. Try adjusting your filters.</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Music Trends{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'music/style.css' %}" />
+</head>
+<body>
+  <nav>
+    <a href="{% url 'home' %}" class="nav-brand">♪ Music Trends</a>
+    <ul class="nav-links">
+      <li>
+        <a href="{% url 'home' %}"
+           {% if request.resolver_match.url_name == 'home' %}class="active"{% endif %}>
+          Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'songs' %}"
+           {% if request.resolver_match.url_name == 'songs' or request.resolver_match.url_name == 'song_detail' %}class="active"{% endif %}>
+          Songs
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'insights' %}"
+           {% if request.resolver_match.url_name == 'insights' %}class="active"{% endif %}>
+          Insights
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'operations' %}"
+           {% if request.resolver_match.url_name == 'operations' %}class="active"{% endif %}>
+          Operations
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'about_data' %}"
+           {% if request.resolver_match.url_name == 'about_data' %}class="active"{% endif %}>
+          About Data
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

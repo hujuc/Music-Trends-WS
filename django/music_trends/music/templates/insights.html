@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Insights — Music Trends{% endblock %}
+
+{% block content %}
+<h1>Insights</h1>
+<p class="text-muted text-sm section">Creative analytics derived from the dataset.</p>
+
+{% if error_message %}
+  <div class="alert alert-error">{{ error_message }}</div>
+{% endif %}
+
+<!-- ── Party Score ─────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="card">
+    <h2>Party Score <span class="badge badge-accent">Top 25</span></h2>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      Composite of energy, danceability and valence — the songs that most want to make you dance.
+    </p>
+    {% if insights.party %}
+    <table>
+      <thead>
+        <tr><th>#</th><th>Song</th><th>Artist</th><th>Score</th></tr>
+      </thead>
+      <tbody>
+        {% for s in insights.party %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td><a href="{% url 'song_detail' %}?uri={{ s.uri }}">{{ s.name }}</a></td>
+          <td><a href="{% url 'artist_detail' %}?uri={{ s.artist_uri }}">{{ s.artist }}</a></td>
+          <td>{{ s.score }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No data available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Hidden Gems ────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="card">
+    <h2>Hidden Gems <span class="badge badge-accent">Top 30</span></h2>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      High energy (&ge; 0.75) + danceability (&ge; 0.75), but low popularity (&lt; 40) — underrated bangers.
+    </p>
+    {% if insights.hidden_gems %}
+    <table>
+      <thead>
+        <tr><th>#</th><th>Song</th><th>Artist</th><th>Energy</th><th>Dance</th><th>Popularity</th></tr>
+      </thead>
+      <tbody>
+        {% for s in insights.hidden_gems %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td><a href="{% url 'song_detail' %}?uri={{ s.uri }}">{{ s.name }}</a></td>
+          <td><a href="{% url 'artist_detail' %}?uri={{ s.artist_uri }}">{{ s.artist }}</a></td>
+          <td>{{ s.energy }}</td>
+          <td>{{ s.danceability }}</td>
+          <td>{{ s.popularity }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No data available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Versatile Artists ──────────────────────────────────────────── -->
+<div class="section">
+  <div class="card">
+    <h2>Most Versatile Artists</h2>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      Artists who span the most distinct genres in the dataset.
+    </p>
+    {% if insights.versatile %}
+    <table>
+      <thead>
+        <tr><th>#</th><th>Artist</th><th>Genres</th></tr>
+      </thead>
+      <tbody>
+        {% for a in insights.versatile %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td><a href="{% url 'artist_detail' %}?uri={{ a.uri }}">{{ a.name }}</a></td>
+          <td>{{ a.genre_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No data available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Most Resilient ─────────────────────────────────────────────── -->
+<div class="section">
+  <div class="card">
+    <h2>Most Resilient Songs</h2>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      Songs with the most weeks on chart and best peak rank.
+    </p>
+    {% if insights.resilient %}
+    <table>
+      <thead>
+        <tr><th>#</th><th>Song</th><th>Peak Rank</th><th>Weeks</th></tr>
+      </thead>
+      <tbody>
+        {% for s in insights.resilient %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td><a href="{% url 'song_detail' %}?uri={{ s.uri }}">{{ s.name }}</a></td>
+          <td>#{{ s.best_rank }}</td>
+          <td>{{ s.weeks_peak }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No data available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Seasonality ────────────────────────────────────────────────── -->
+<div class="section">
+  <div class="card">
+    <h2>Chart Entries by Month</h2>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      Which months have the highest chart activity?
+    </p>
+    {% if insights.seasonality %}
+    <table>
+      <thead>
+        <tr><th>Month</th><th>Chart Entries</th></tr>
+      </thead>
+      <tbody>
+        {% for row in insights.seasonality %}
+        <tr>
+          <td>{{ row.month }}</td>
+          <td>{{ row.entries }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No data available.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

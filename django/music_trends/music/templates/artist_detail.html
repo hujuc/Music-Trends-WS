@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{% if artist %}{{ artist.name }} — {% endif %}Music Trends{% endblock %}
+
+{% block content %}
+
+{% if error_message %}
+  <div class="alert alert-error">{{ error_message }}</div>
+
+{% elif artist %}
+
+  <p class="text-muted text-sm" style="margin-bottom: 1rem;">
+    <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
+  </p>
+
+  <h1>{{ artist.name }}</h1>
+
+  {% if artist.genres %}
+  <p class="mt-1">
+    {% for g in artist.genres %}
+      <span class="badge badge-accent">{{ g }}</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+
+  <div class="stats-grid mt-2 section" style="max-width: 640px;">
+    <div class="stat-card">
+      <div class="stat-number">{{ artist.song_count }}</div>
+      <div class="stat-label">Songs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{% if artist.best_rank != '—' %}#{{ artist.best_rank }}{% else %}—{% endif %}</div>
+      <div class="stat-label">Best Chart Rank</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ artist.avg_popularity }}</div>
+      <div class="stat-label">Avg. Popularity</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Songs</h2>
+    {% if songs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Song</th>
+          <th>Genre</th>
+          <th>Popularity</th>
+          <th>Energy</th>
+          <th>Danceability</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for song in songs %}
+        <tr>
+          <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
+          <td>
+            {% if song.genre %}
+              <span class="badge">{{ song.genre }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>{% if song.popularity %}{{ song.popularity }}{% else %}—{% endif %}</td>
+          <td>{% if song.energy %}{{ song.energy }}{% else %}—{% endif %}</td>
+          <td>{% if song.danceability %}{{ song.danceability }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No songs found for this artist.</p>
+    {% endif %}
+  </div>
+
+{% else %}
+  <p class="text-muted">Artist not found.</p>
+  <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>
+{% endif %}
+
+{% endblock %}
