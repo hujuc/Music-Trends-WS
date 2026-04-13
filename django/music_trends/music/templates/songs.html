@@ -8,6 +8,11 @@
   <form method="get">
     <div class="form-grid">
       <div class="form-group">
+        <label for="song">Song Name</label>
+        <input id="song" name="song" type="text"
+               value="{{ song_query|default:'' }}" placeholder="e.g. Blinding Lights" />
+      </div>
+      <div class="form-group">
         <label for="artist">Artist</label>
         <input id="artist" name="artist" type="text"
                value="{{ artist_query|default:'' }}" placeholder="e.g. Drake" />
@@ -74,10 +79,10 @@
     <div class="text-muted text-sm">Page {{ page }}</div>
     <div style="display:flex;gap:0.6rem;">
       {% if has_previous %}
-        <a class="btn" href="?artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ previous_page }}">Previous</a>
+        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ previous_page }}">Previous</a>
       {% endif %}
       {% if has_next %}
-        <a class="btn" href="?artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ next_page }}">Next</a>
+        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ next_page }}">Next</a>
       {% endif %}
     </div>
   </div>
