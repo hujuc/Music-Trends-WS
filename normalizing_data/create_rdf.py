@@ -46,9 +46,25 @@ def split_artists(raw_artist_str):
     # tirar as aspas 
     raw_artist_str = raw_artist_str.replace('"', '').replace("'", "")
 
-    cleaned = re.sub(r'\b(featuring|feat\.?|ft\.?|and|&)(?=\s|,|$)', ',', raw_artist_str, flags=re.I)
+    cleaned = re.sub(r'\b(featuring|feat\.?|ft\.?)\b', ',', raw_artist_str, flags=re.I)
+    cleaned = re.sub(r'\b(and|with)\b', ',', cleaned, flags=re.I)
+    cleaned = re.sub(r'\s+[xX]\s+', ',', cleaned)
+    cleaned = re.sub(r'\s*&\s*', ',', cleaned)
+    cleaned = re.sub(r'\s*\+\s*', ',', cleaned)
+    cleaned = re.sub(r'\s*;\s*', ',', cleaned)
 
-    parts = [p.strip() for p in cleaned.split(',') if p.strip()]
+    initial_parts = [p.strip() for p in cleaned.split(',') if p.strip()]
+
+    # Alguns casos vêm colados por slash (ex.: "Jay-Z/Linkin Park").
+    # Só dividimos quando ambos os lados parecem nomes completos para evitar casos como AC/DC.
+    parts = []
+    for token in initial_parts:
+        if '/' in token and token.count('/') == 1:
+            left, right = [t.strip() for t in token.split('/')]
+            if len(left) >= 4 and len(right) >= 4:
+                parts.extend([left, right])
+                continue
+        parts.append(token)
 
     if len(parts) == 0:
         return None, []
