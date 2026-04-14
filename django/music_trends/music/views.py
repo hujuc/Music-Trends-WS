@@ -49,6 +49,13 @@ def _clean_artist_label(name: str) -> str:
     return cleaned or name
 
 
+def _split_genres(raw_genre):
+    if raw_genre in (None, '', '—'):
+        return []
+    parts = [p.strip() for p in str(raw_genre).split(',')]
+    return [p for p in parts if p]
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 def home(request):
@@ -251,8 +258,9 @@ def songs(request):
             }
 
         genre_value = _val(r, 'genre', None)
-        if genre_value and genre_value != '—' and genre_value not in results_by_uri[uri]['genres']:
-            results_by_uri[uri]['genres'].append(genre_value)
+        for genre in _split_genres(genre_value):
+            if genre not in results_by_uri[uri]['genres']:
+                results_by_uri[uri]['genres'].append(genre)
 
     results = []
     for uri in ordered_uris:
@@ -327,7 +335,11 @@ def song_detail(request):
         row0 = bindings[0]
 
         # Collect multi-value fields
-        genres = list({_val(r, 'genre') for r in bindings if r.get('genre')})
+        genres = []
+        for r in bindings:
+            for genre in _split_genres(_val(r, 'genre', None)):
+                if genre not in genres:
+                    genres.append(genre)
         seen_feat = set()
         featured_artists = []
         for r in bindings:
@@ -501,7 +513,11 @@ def artist_detail(request):
             return render(request, 'artist_detail.html', {'error_message': 'Artist not found.'})
 
         artist_name = _clean_artist_label(_val(bindings[0], 'artistName'))
-        genres = list({_val(r, 'genre') for r in bindings if r.get('genre')})
+        genres = []
+        for r in bindings:
+            for genre in _split_genres(_val(r, 'genre', None)):
+                if genre not in genres:
+                    genres.append(genre)
 
         seen_songs = set()
         songs_list = []
@@ -512,7 +528,7 @@ def artist_detail(request):
                 songs_list.append({
                     'uri': s_uri,
                     'name': _val(r, 'songName'),
-                    'genre': _val(r, 'genre', None),
+                    'genre': (_split_genres(_val(r, 'genre', None)) or [None])[0],
                     'popularity': _safe_float(_val(r, 'popularity', None)),
                     'energy': _safe_float(_val(r, 'energy', None)),
                     'danceability': _safe_float(_val(r, 'danceability', None)),
