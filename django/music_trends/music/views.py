@@ -1537,22 +1537,43 @@ def insights(request):
                 'chart_count': _safe_int(_val(r, 'chartCount')),
     })
 
-    ctx['insights']['versatile'] = safe_query("""
-        SELECT ?artist ?artistName (COUNT(DISTINCT ?genre) AS ?genreCount)
-        WHERE {
-          ?song a type:Song ;
-                pred:mainArtist ?artist ;
-                pred:genre ?genre .
-          ?artist pred:name ?artistName .
-        }
-        GROUP BY ?artist ?artistName
-        ORDER BY DESC(?genreCount)
-        LIMIT 20
-    """, lambda r: {
-        'uri': _val(r, 'artist'),
-        'name': _clean_artist_label(_val(r, 'artistName')),
-        'genre_count': _val(r, 'genreCount'),
-    })
+    try:
+        versatile_raw = run_select("""
+            SELECT ?artist ?artistName ?genre
+            WHERE {
+              ?artist a type:Artist ;
+                      pred:name ?artistName .
+              ?song a type:Song ;
+                    pred:mainArtist ?artist .
+              OPTIONAL {
+                ?song pred:genre ?genre .
+              }
+            }
+            ORDER BY ?artist
+        """)
+    except SparqlClientError:
+        versatile_raw = []
+    
+    # Post-process to count unique genres per artist (with split handling)
+    versatile_by_artist = {}
+    for r in versatile_raw:
+        artist_uri = _val(r, 'artist')
+        if artist_uri not in versatile_by_artist:
+            versatile_by_artist[artist_uri] = {
+                'uri': artist_uri,
+                'name': _clean_artist_label(_val(r, 'artistName')),
+                'genres': set(),
+            }
+        genre_str = _val(r, 'genre', None)
+        if genre_str:
+            for genre in _split_genres(genre_str):
+                versatile_by_artist[artist_uri]['genres'].add(genre)
+    
+    ctx['insights']['versatile'] = sorted(
+        [{'uri': v['uri'], 'name': v['name'], 'genre_count': len(v['genres'])} for v in versatile_by_artist.values()],
+        key=lambda x: x['genre_count'],
+        reverse=True
+    )[:20]
 
     ctx['insights']['resilient'] = safe_query("""
         SELECT ?song ?songName (MAX(?weeks) AS ?weeksPeak) (MIN(?rank) AS ?bestRank)
