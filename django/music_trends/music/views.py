@@ -2,6 +2,7 @@ import hashlib
 import math
 import re
 
+from django.core.cache import cache
 from django.shortcuts import render, redirect
 
 from .sparql_client import SparqlClientError, run_select, run_update, sparql_escape_literal
@@ -13,6 +14,9 @@ MONTH_NAMES = {
     '05': 'May', '06': 'June', '07': 'July', '08': 'August',
     '09': 'September', '10': 'October', '11': 'November', '12': 'December',
 }
+
+OPERATIONS_OPTIONS_CACHE_KEY = 'music:operations:options:v1'
+OPERATIONS_OPTIONS_CACHE_TTL = 60
 
 
 def _val(binding, key, default='—'):
@@ -684,6 +688,11 @@ def operations(request):
     }
 
     def _load_options():
+        cached_options = cache.get(OPERATIONS_OPTIONS_CACHE_KEY)
+        if cached_options:
+            ctx.update(cached_options)
+            return
+
         try:
             song_rows = run_select("""
                 SELECT ?songName
@@ -801,6 +810,20 @@ def operations(request):
                     'weeks': weeks,
                 })
             ctx['chart_entries_by_song'] = chart_entries_by_song
+
+            cache.set(
+                OPERATIONS_OPTIONS_CACHE_KEY,
+                {
+                    'song_options': ctx['song_options'],
+                    'artist_options': ctx['artist_options'],
+                    'genre_options': ctx['genre_options'],
+                    'chart_entry_options': ctx['chart_entry_options'],
+                    'chart_entries_by_song': ctx['chart_entries_by_song'],
+                    'song_attribute_map': ctx['song_attribute_map'],
+                    'song_genres_map': ctx['song_genres_map'],
+                },
+                OPERATIONS_OPTIONS_CACHE_TTL,
+            )
         except (SparqlClientError, StopIteration):
             pass
 
@@ -820,6 +843,7 @@ def operations(request):
                     }}
                 """)
                 ctx['success_message'] = 'Genre added successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
             elif op == 'edit_popularity':
                 song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
@@ -843,6 +867,7 @@ def operations(request):
                     }}
                 """)
                 ctx['success_message'] = 'Popularity updated successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
             elif op == 'remove_featured':
                 song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
@@ -854,6 +879,7 @@ def operations(request):
                     }}
                 """)
                 ctx['success_message'] = 'Featured artists removed successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
             elif op == 'add_chart_entry':
                 song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
@@ -883,6 +909,7 @@ def operations(request):
                     }}
                 """)
                 ctx['success_message'] = 'Chart entry added successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
             else:
                 ctx['error_message'] = 'Unknown operation.'
