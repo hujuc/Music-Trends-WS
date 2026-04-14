@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any
 
 import requests
@@ -8,14 +9,6 @@ from django.conf import settings
 
 class SparqlClientError(Exception):
     """Raised when the SPARQL endpoint is unavailable or returns invalid data."""
-
-
-def _get_update_endpoint() -> str:
-    endpoint = settings.GRAPHDB_ENDPOINT.rstrip('/')
-    # GraphDB expects SPARQL UPDATE requests at /repositories/<repo>/statements.
-    if endpoint.endswith('/statements'):
-        return endpoint
-    return f"{endpoint}/statements"
 
 
 def build_prefixes(prefixes: dict[str, str]) -> str:
@@ -27,21 +20,44 @@ def sparql_escape_literal(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _post_with_retry(data: dict[str, str], headers: dict[str, str] | None = None) -> requests.Response:
+    last_exc: requests.RequestException | None = None
+    for attempt in range(2):
+        try:
+            response = requests.post(
+                settings.GRAPHDB_ENDPOINT,
+                data=data,
+                headers=headers,
+                timeout=settings.GRAPHDB_TIMEOUT,
+            )
+            response.raise_for_status()
+            return response
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            last_exc = exc
+            if attempt == 0:
+                time.sleep(0.4)
+                continue
+            break
+
+    if last_exc is not None:
+        raise last_exc
+    raise requests.RequestException("Unknown GraphDB request failure.")
+
+
 def run_select(query_body: str) -> list[dict[str, Any]]:
     prefixes = build_prefixes(settings.SPARQL_PREFIXES)
     full_query = f"{prefixes}\n\n{query_body.strip()}"
 
     try:
-        response = requests.post(
-            settings.GRAPHDB_ENDPOINT,
+        response = _post_with_retry(
             data={"query": full_query},
             headers={"Accept": "application/sparql-results+json"},
-            timeout=settings.GRAPHDB_TIMEOUT,
         )
-        response.raise_for_status()
         payload = response.json()
     except requests.RequestException as exc:
-        raise SparqlClientError("Nao foi possivel ligar ao GraphDB.") from exc
+        raise SparqlClientError(
+            f"Nao foi possivel ligar ao GraphDB em {settings.GRAPHDB_ENDPOINT}."
+        ) from exc
     except ValueError as exc:
         raise SparqlClientError("Resposta invalida do GraphDB.") from exc
 
@@ -55,14 +71,10 @@ def run_select(query_body: str) -> list[dict[str, Any]]:
 def run_update(query_body: str) -> None:
     prefixes = build_prefixes(settings.SPARQL_PREFIXES)
     full_query = f"{prefixes}\n\n{query_body.strip()}"
-    update_endpoint = _get_update_endpoint()
 
     try:
-        response = requests.post(
-            update_endpoint,
-            data={"update": full_query},
-            timeout=settings.GRAPHDB_TIMEOUT,
-        )
-        response.raise_for_status()
+        _post_with_retry(data={"update": full_query})
     except requests.RequestException as exc:
-        raise SparqlClientError("Falha ao executar update SPARQL.") from exc
+        raise SparqlClientError(
+            f"Falha ao executar update SPARQL em {settings.GRAPHDB_ENDPOINT}."
+        ) from exc

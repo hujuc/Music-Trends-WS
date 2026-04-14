@@ -331,6 +331,195 @@ button:hover, .btn:hover {
   transition: width 0.4s ease;
 }
 
+/* ── Collaboration network ─────────────────────────────────────────────── */
+
+.collab-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.view-switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(15, 16, 44, 0.9);
+  padding: 0.18rem;
+}
+
+.view-switch-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 0.33rem 0.8rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.view-switch-btn:hover {
+  color: var(--text);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.view-switch-btn.active {
+  color: #dbeafe;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.75), rgba(6, 182, 212, 0.65));
+}
+
+.collab-panel {
+  display: none;
+}
+
+.collab-panel.is-visible {
+  display: block;
+}
+
+.collab-network {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(30, 30, 63, 0.2);
+}
+
+.graph-layout {
+  padding: 1.2rem;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(76, 29, 149, 0.28), rgba(10, 10, 26, 0.15) 52%),
+    radial-gradient(circle at 24% 22%, rgba(6, 182, 212, 0.13), transparent 48%),
+    radial-gradient(circle at 78% 70%, rgba(139, 92, 246, 0.12), transparent 45%);
+}
+
+.collab-graph-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 560px;
+}
+
+.collab-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.collab-edges line {
+  stroke: rgba(99, 102, 241, 0.42);
+  stroke-width: 0.35;
+}
+
+.graph-center-node {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(139, 92, 246, 0.22);
+  border: 1px solid rgba(139, 92, 246, 0.55);
+  border-radius: 999px;
+  color: #ddd6fe;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.45rem 1rem;
+  z-index: 2;
+  max-width: 180px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.28);
+}
+
+.graph-node {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 170px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(23, 24, 56, 0.96);
+  box-shadow: 0 6px 18px rgba(8, 8, 28, 0.45);
+  text-decoration: none;
+  z-index: 3;
+}
+
+.graph-node:hover {
+  border-color: rgba(6, 182, 212, 0.7);
+  box-shadow: 0 8px 28px rgba(6, 182, 212, 0.24);
+  transform: translate(-50%, -50%) scale(1.02);
+  text-decoration: none;
+}
+
+.node-name {
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.node-score {
+  color: #c4b5fd;
+  font-size: 0.72rem;
+  line-height: 1.15;
+}
+
+.node-count {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.node-track {
+  color: var(--accent2);
+  font-size: 0.73rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-layout {
+  padding: 0.45rem;
+  background: rgba(14, 15, 38, 0.88);
+}
+
+.collab-table td,
+.collab-table th {
+  vertical-align: top;
+}
+
+.shared-songs-details {
+  display: inline-block;
+}
+
+.shared-songs-details summary {
+  cursor: pointer;
+  color: var(--accent2);
+  font-size: 0.8rem;
+}
+
+.shared-songs-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-width: 360px;
+}
+
+.badge-song {
+  background: rgba(6, 182, 212, 0.14);
+  border: 1px solid rgba(6, 182, 212, 0.45);
+  color: #a5f3fc;
+}
+
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 
 .empty-state {
@@ -357,6 +546,9 @@ button:hover, .btn:hover {
   nav { padding: 0 1rem; gap: 1rem; }
   .container { padding: 1rem; }
   h1 { font-size: 1.4rem; }
+  .collab-headline { align-items: flex-start; flex-direction: column; }
+  .collab-graph-stage { min-height: 720px; }
+  .graph-node { width: 148px; }
 }
 
 @media (max-width: 480px) {
