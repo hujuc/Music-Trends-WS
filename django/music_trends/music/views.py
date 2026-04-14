@@ -1457,18 +1457,30 @@ def insights(request):
     })
 
     ctx['insights']['hidden_gems'] = safe_query("""
-        SELECT ?song ?songName ?mainArtist ?artistName ?energy ?danceability ?popularity
-        WHERE {
-          ?song a type:Song ;
-                pred:name ?songName ;
-                pred:mainArtist ?mainArtist ;
-                pred:energy ?energy ;
-                pred:danceability ?danceability ;
-                pred:popularity ?popularity .
-          ?mainArtist pred:name ?artistName .
-          FILTER(?energy >= 0.75 && ?danceability >= 0.75 && ?popularity < 40)
-        }
-        ORDER BY DESC(?energy) DESC(?danceability)
+                SELECT ?song ?songName ?mainArtist ?artistName ?energy ?danceability ?chartCount
+                WHERE {
+                    {
+                        SELECT ?song (COUNT(DISTINCT ?entry) AS ?chartCount)
+                        WHERE {
+                            ?song a type:Song ;
+                                        pred:energy ?energy ;
+                                        pred:danceability ?danceability .
+                            FILTER(?energy >= 0.75 && ?danceability >= 0.75)
+                            OPTIONAL {
+                                ?entry a type:ChartEntry ;
+                                             pred:song ?song .
+                            }
+                        }
+                        GROUP BY ?song
+                        HAVING(COUNT(DISTINCT ?entry) <= 2)
+                    }
+                    ?song pred:name ?songName ;
+                                pred:mainArtist ?mainArtist ;
+                                pred:energy ?energy ;
+                                pred:danceability ?danceability .
+                    ?mainArtist pred:name ?artistName .
+                }
+                ORDER BY ASC(?chartCount) DESC(?energy) DESC(?danceability)
         LIMIT 30
     """, lambda r: {
         'uri': _val(r, 'song'),
@@ -1477,7 +1489,7 @@ def insights(request):
         'artist': _clean_artist_label(_val(r, 'artistName')),
         'energy': _safe_float(_val(r, 'energy')),
         'danceability': _safe_float(_val(r, 'danceability')),
-        'popularity': _safe_float(_val(r, 'popularity')),
+                'chart_count': _safe_int(_val(r, 'chartCount')),
     })
 
     ctx['insights']['versatile'] = safe_query("""
