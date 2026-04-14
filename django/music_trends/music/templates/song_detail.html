@@ -112,6 +112,43 @@
 
   </div>
 
+  {% if similar_songs %}
+  <div class="card mt-2">
+    <h2>Similar Songs</h2>
+    <p class="text-muted text-sm" style="margin-bottom: 1.25rem;">
+      Ranked by audio feature similarity — energy, danceability, valence, acousticness, speechiness, instrumentalness, liveness
+    </p>
+    <div class="similar-grid">
+      {% for s in similar_songs %}
+      <div class="similar-card">
+        <a href="{% url 'song_detail' %}?uri={{ s.uri }}" class="similar-title">{{ s.name }}</a>
+        <a href="{% url 'artist_detail' %}?uri={{ s.artist_uri }}" class="text-muted text-sm similar-artist">{{ s.artist_name }}</a>
+        {% if s.sim_pct is not None %}
+        <div class="similar-score">
+          <span class="similar-score-label">Similarity</span>
+          <span class="similar-score-value">{{ s.sim_pct }}%</span>
+        </div>
+        {% endif %}
+        <div class="similar-features">
+          <div class="mini-feat">
+            <span class="mini-feat-label">Energy</span>
+            <div class="mini-feat-bar"><div class="mini-feat-fill" style="width: {{ s.energy_pct }}%;"></div></div>
+          </div>
+          <div class="mini-feat">
+            <span class="mini-feat-label">Dance</span>
+            <div class="mini-feat-bar"><div class="mini-feat-fill" style="width: {{ s.dance_pct }}%;"></div></div>
+          </div>
+          <div class="mini-feat">
+            <span class="mini-feat-label">Valence</span>
+            <div class="mini-feat-bar"><div class="mini-feat-fill" style="width: {{ s.valence_pct }}%;"></div></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
 {% else %}
   <p class="text-muted">Song not found.</p>
   <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>

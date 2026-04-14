@@ -339,6 +339,67 @@ def song_detail(request):
             for r in chart_bindings
         ]
 
+        # ── Similar songs (Manhattan distance over normalised audio features) ──
+        _FEAT_KEYS = ['energy', 'danceability', 'valence', 'acousticness',
+                      'speechiness', 'instrumentalness', 'liveness']
+        feat_vals = {}
+        for fk in _FEAT_KEYS:
+            raw = _val(row0, fk, None)
+            if raw is not None and raw != '—':
+                try:
+                    feat_vals[fk] = float(raw)
+                except ValueError:
+                    pass
+
+        if len(feat_vals) >= 3:
+            try:
+                preds = ' ;\n                '.join(
+                    f'pred:{k} ?{k}' for k in feat_vals
+                )
+                terms = ' + '.join(
+                    f'ABS(?{k} - {v})' for k, v in feat_vals.items()
+                )
+                similar_rows = run_select(f"""
+                    SELECT ?song ?name ?artistUri ?artistName
+                           ?energy ?danceability ?valence ?distance
+                    WHERE {{
+                      ?song a type:Song ;
+                            pred:name ?name ;
+                            pred:mainArtist ?artistUri ;
+                            {preds} .
+                      ?artistUri pred:name ?artistName .
+                      FILTER(?song != <{uri}>)
+                      BIND(({terms}) AS ?distance)
+                    }}
+                    ORDER BY ASC(?distance)
+                    LIMIT 6
+                """)
+                max_dist = len(feat_vals)
+                similar_songs = []
+                for r in similar_rows:
+                    raw_dist = _val(r, 'distance', None)
+                    dist = None
+                    sim_pct = None
+                    if raw_dist is not None and raw_dist != '—':
+                        try:
+                            dist = float(raw_dist)
+                            sim_pct = max(0, round((1 - dist / max_dist) * 100))
+                        except ValueError:
+                            pass
+                    similar_songs.append({
+                        'uri': _val(r, 'song'),
+                        'name': _val(r, 'name'),
+                        'artist_uri': _val(r, 'artistUri'),
+                        'artist_name': _val(r, 'artistName'),
+                        'energy_pct': round(float(_val(r, 'energy', 0) or 0) * 100),
+                        'dance_pct': round(float(_val(r, 'danceability', 0) or 0) * 100),
+                        'valence_pct': round(float(_val(r, 'valence', 0) or 0) * 100),
+                        'sim_pct': sim_pct,
+                    })
+                ctx['similar_songs'] = similar_songs
+            except SparqlClientError:
+                pass  # similar songs are optional; don't break the page
+
     except SparqlClientError as exc:
         ctx['error_message'] = str(exc)
 
