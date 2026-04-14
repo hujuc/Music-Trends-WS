@@ -161,6 +161,14 @@ table {
   border-collapse: collapse;
 }
 
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-scroll table {
+  min-width: 1080px;
+}
+
 th {
   text-align: left;
   font-size: 0.72rem;

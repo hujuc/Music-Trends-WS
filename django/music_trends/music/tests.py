@@ -67,7 +67,7 @@ class OperationsViewTests(TestCase):
 		})
 
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Invalid attribute. Allowed: energy, danceability, valence, tempo.')
+		self.assertContains(response, 'Invalid attribute. Allowed: energy, danceability, valence, acousticness, speechiness, instrumentalness, liveness, tempo.')
 		mock_run_update.assert_not_called()
 
 	@patch('music.views.run_update')
