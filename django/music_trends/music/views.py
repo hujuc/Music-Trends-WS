@@ -125,7 +125,6 @@ def songs(request):
     top_metric = request.GET.get('top_metric', '').strip()
     page_raw = request.GET.get('page', '1').strip()
     page_size = 15
-
     try:
         page = max(1, int(page_raw))
     except ValueError:
@@ -482,20 +481,21 @@ def artist_detail(request):
     ctx = {}
     try:
         bindings = run_select(f"""
-            SELECT ?artistName ?song ?songName ?genre ?popularity ?energy ?danceability
-            WHERE {{
-              BIND(<{uri}> AS ?artist)
-              ?artist pred:name ?artistName .
-              ?song a type:Song ;
-                    pred:mainArtist ?artist ;
-                    pred:name ?songName .
-              OPTIONAL {{ ?song pred:genre ?genre . }}
-              OPTIONAL {{ ?song pred:popularity ?popularity . }}
-              OPTIONAL {{ ?song pred:energy ?energy . }}
-              OPTIONAL {{ ?song pred:danceability ?danceability . }}
-            }}
-            ORDER BY ?songName
-        """)
+                        SELECT ?artistName ?song ?songName ?genre ?popularity ?energy ?danceability ?valence
+                        WHERE {{
+                            BIND(<{uri}> AS ?artist)
+                            ?artist pred:name ?artistName .
+                            ?song a type:Song ;
+                                        pred:mainArtist ?artist ;
+                                        pred:name ?songName .
+                            OPTIONAL {{ ?song pred:genre ?genre . }}
+                            OPTIONAL {{ ?song pred:popularity ?popularity . }}
+                            OPTIONAL {{ ?song pred:energy ?energy . }}
+                            OPTIONAL {{ ?song pred:danceability ?danceability . }}
+                            OPTIONAL {{ ?song pred:valence ?valence . }}
+                        }}
+                        ORDER BY ?songName
+                """)
 
         if not bindings:
             return render(request, 'artist_detail.html', {'error_message': 'Artist not found.'})
@@ -516,10 +516,11 @@ def artist_detail(request):
                     'popularity': _safe_float(_val(r, 'popularity', None)),
                     'energy': _safe_float(_val(r, 'energy', None)),
                     'danceability': _safe_float(_val(r, 'danceability', None)),
+                    'valence': _safe_float(_val(r, 'valence', None)),
                 })
 
         chart_bindings = run_select(f"""
-            SELECT (MIN(?rank) AS ?bestRank)
+            SELECT (MIN(?rank) AS ?bestRank) (COUNT(DISTINCT ?entry) AS ?chartEntries)
             WHERE {{
               BIND(<{uri}> AS ?artist)
               ?entry a type:ChartEntry ;
@@ -529,6 +530,7 @@ def artist_detail(request):
             }}
         """)
         best_rank = _val(chart_bindings[0], 'bestRank') if chart_bindings else '—'
+        chart_entries = _val(chart_bindings[0], 'chartEntries') if chart_bindings else '0'
 
         collab_bindings = run_select(f"""
             SELECT ?collab (SAMPLE(?collabName) AS ?collabDisplay)
@@ -681,12 +683,23 @@ def artist_detail(request):
 
         pop_values = [s['popularity'] for s in songs_list if isinstance(s['popularity'], float)]
         avg_pop = round(sum(pop_values) / len(pop_values), 1) if pop_values else '—'
+        energy_values = [s['energy'] for s in songs_list if isinstance(s['energy'], float)]
+        dance_values = [s['danceability'] for s in songs_list if isinstance(s['danceability'], float)]
+        valence_values = [s['valence'] for s in songs_list if isinstance(s['valence'], float)]
+
+        avg_energy = round(sum(energy_values) / len(energy_values), 3) if energy_values else '—'
+        avg_danceability = round(sum(dance_values) / len(dance_values), 3) if dance_values else '—'
+        avg_valence = round(sum(valence_values) / len(valence_values), 3) if valence_values else '—'
 
         ctx['artist'] = {
             'name': artist_name,
             'genres': genres,
             'song_count': len(songs_list),
+            'chart_entries': chart_entries,
             'best_rank': best_rank,
+            'avg_energy': avg_energy,
+            'avg_danceability': avg_danceability,
+            'avg_valence': avg_valence,
             'avg_popularity': avg_pop,
             'collaborator_count': len(collaborators),
         }
