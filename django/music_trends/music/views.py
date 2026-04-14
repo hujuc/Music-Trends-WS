@@ -671,7 +671,138 @@ def artist_detail(request):
 # ── SPARQL Operations ─────────────────────────────────────────────────────────
 
 def operations(request):
-    ctx = {}
+    ctx = {
+        'song_options': [],
+        'artist_options': [],
+        'genre_options': [],
+        'chart_entry_options': [],
+        'chart_entries_by_song': {},
+        'song_attribute_map': {},
+        'song_genres_map': {},
+        'artist_delete_name': '',
+        'artist_delete_songs': [],
+    }
+
+    def _load_options():
+        try:
+            song_rows = run_select("""
+                SELECT ?songName
+                       (MAX(IF(BOUND(?energy), 1, 0)) AS ?hasEnergy)
+                       (MAX(IF(BOUND(?danceability), 1, 0)) AS ?hasDanceability)
+                       (MAX(IF(BOUND(?valence), 1, 0)) AS ?hasValence)
+                       (MAX(IF(BOUND(?tempo), 1, 0)) AS ?hasTempo)
+                WHERE {
+                  ?song a type:Song ;
+                        pred:name ?songName .
+                  OPTIONAL { ?song pred:energy ?energy }
+                  OPTIONAL { ?song pred:danceability ?danceability }
+                  OPTIONAL { ?song pred:valence ?valence }
+                  OPTIONAL { ?song pred:tempo ?tempo }
+                }
+                GROUP BY ?songName
+                ORDER BY ?songName
+                LIMIT 5000
+            """)
+
+            song_options = []
+            song_attribute_map = {}
+            for row in song_rows:
+                song_name = _val(row, 'songName')
+                if song_name == '—':
+                    continue
+                song_options.append(song_name)
+
+                attrs = []
+                if _val(row, 'hasEnergy') == '1':
+                    attrs.append('energy')
+                if _val(row, 'hasDanceability') == '1':
+                    attrs.append('danceability')
+                if _val(row, 'hasValence') == '1':
+                    attrs.append('valence')
+                if _val(row, 'hasTempo') == '1':
+                    attrs.append('tempo')
+                song_attribute_map[song_name] = attrs
+
+            ctx['song_options'] = song_options
+            ctx['song_attribute_map'] = song_attribute_map
+
+            song_genre_rows = run_select("""
+                SELECT ?songName ?genre
+                WHERE {
+                  ?song a type:Song ;
+                        pred:name ?songName .
+                  OPTIONAL { ?song pred:genre ?genre . }
+                }
+                ORDER BY ?songName ?genre
+                LIMIT 10000
+            """)
+            song_genres_map = {}
+            for row in song_genre_rows:
+                song_name = _val(row, 'songName')
+                genre = _val(row, 'genre', None)
+                if not song_name or song_name == '—':
+                    continue
+                if song_name not in song_genres_map:
+                    song_genres_map[song_name] = []
+                if genre and genre != '—' and genre not in song_genres_map[song_name]:
+                    song_genres_map[song_name].append(genre)
+            ctx['song_genres_map'] = song_genres_map
+
+            artist_rows = run_select("""
+                SELECT DISTINCT ?artistName
+                WHERE {
+                  ?artist a type:Artist ;
+                          pred:name ?artistName .
+                }
+                ORDER BY ?artistName
+                LIMIT 10000
+            """)
+            ctx['artist_options'] = [_val(r, 'artistName') for r in artist_rows if _val(r, 'artistName') != '—']
+
+            genre_rows = run_select("""
+                SELECT DISTINCT ?genre
+                WHERE {
+                  ?song pred:genre ?genre .
+                }
+                ORDER BY ?genre
+                LIMIT 1000
+            """)
+            ctx['genre_options'] = [_val(r, 'genre') for r in genre_rows if _val(r, 'genre') != '—']
+
+            entry_rows = run_select("""
+                SELECT ?entry ?songName ?date ?rank ?weeks
+                WHERE {
+                  ?entry a type:ChartEntry ;
+                         pred:song ?song ;
+                         pred:date ?date ;
+                         pred:rank ?rank ;
+                         pred:weeks ?weeks .
+                  ?song pred:name ?songName .
+                }
+                ORDER BY ?songName DESC(?date) ?entry
+            """)
+            ctx['chart_entry_options'] = [_val(r, 'entry') for r in entry_rows if _val(r, 'entry') != '—']
+
+            chart_entries_by_song = {}
+            for row in entry_rows:
+                song_name = _val(row, 'songName')
+                entry_uri = _val(row, 'entry')
+                if song_name == '—' or entry_uri == '—':
+                    continue
+                date = _val(row, 'date', '—')
+                rank = _val(row, 'rank', '—')
+                weeks = _val(row, 'weeks', '—')
+                label = f'{date} | rank {rank} | weeks {weeks}'
+                chart_entries_by_song.setdefault(song_name, []).append({
+                    'uri': entry_uri,
+                    'label': label,
+                    'date': date,
+                    'rank': rank,
+                    'weeks': weeks,
+                })
+            ctx['chart_entries_by_song'] = chart_entries_by_song
+        except (SparqlClientError, StopIteration):
+            pass
 
     if request.method == 'POST':
         op = request.POST.get('operation', '')
@@ -758,6 +889,8 @@ def operations(request):
 
         except SparqlClientError as exc:
             ctx['error_message'] = str(exc)
+
+    _load_options()
 
     return render(request, 'operations.html', ctx)
 
