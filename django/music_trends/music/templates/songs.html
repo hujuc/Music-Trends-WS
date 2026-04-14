@@ -48,7 +48,7 @@
         <tr>
           <th>Song</th>
           <th>Artist</th>
-          <th>Genre</th>
+          <th>Genres</th>
           <th>Energy</th>
           <th>Danceability</th>
           <th>Valence</th>
@@ -60,8 +60,10 @@
           <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
           <td><a href="{% url 'artist_detail' %}?uri={{ song.artist_uri }}">{{ song.artist }}</a></td>
           <td>
-            {% if song.genre != '-' %}
-              <span class="badge">{{ song.genre }}</span>
+            {% if song.genres and song.genres.0 != '-' %}
+              {% for g in song.genres %}
+                <span class="badge">{{ g }}</span>
+              {% endfor %}
             {% else %}
               <span class="text-muted">—</span>
             {% endif %}
@@ -79,10 +81,10 @@
     <div class="text-muted text-sm">Page {{ page }}</div>
     <div style="display:flex;gap:0.6rem;">
       {% if has_previous %}
-        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ previous_page }}">Previous</a>
+        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&popularity_min={{ popularity_min|urlencode }}&popularity_max={{ popularity_max|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ previous_page }}">Previous</a>
       {% endif %}
       {% if has_next %}
-        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ next_page }}">Next</a>
+        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&popularity_min={{ popularity_min|urlencode }}&popularity_max={{ popularity_max|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ next_page }}">Next</a>
       {% endif %}
     </div>
   </div>

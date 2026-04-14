@@ -124,14 +124,11 @@ def songs(request):
     popularity_max = request.GET.get('popularity_max', '').strip()
     top_metric = request.GET.get('top_metric', '').strip()
     page_raw = request.GET.get('page', '1').strip()
-    page_size = 15
-
     try:
         page = max(1, int(page_raw))
     except ValueError:
         page = 1
-
-    offset = (page - 1) * page_size
+    page_size = 50
 
     filters = []
 
@@ -164,19 +161,23 @@ def songs(request):
         except ValueError:
             popularity_max = ''
 
-    top_metric = top_metric if top_metric in ('energy', 'danceability', 'valence') else ''
+    top_metric = top_metric if top_metric in ('energy', 'danceability', 'popularity', 'valence') else ''
     order_clause = f'ORDER BY DESC(?{top_metric})' if top_metric else ''
     filters_block = "\n        ".join(filters)
+    offset = (page - 1) * page_size
 
     count_query = f"""
-    SELECT (COUNT(DISTINCT ?song) AS ?count)
+    SELECT (COUNT(DISTINCT ?song) AS ?total)
     WHERE {{
         ?song a type:Song ;
-              pred:name ?songname ;
-              pred:mainArtist ?mainArtist .
+            pred:name ?songname ;
+            pred:mainArtist ?mainArtist .
         ?mainArtist pred:name ?artistname .
-        OPTIONAL {{ ?song pred:genre ?genre . }}
         OPTIONAL {{ ?song pred:popularity ?popularity . }}
+        OPTIONAL {{ ?song pred:energy ?energy . }}
+        OPTIONAL {{ ?song pred:danceability ?danceability . }}
+        OPTIONAL {{ ?song pred:valence ?valence . }}
+        OPTIONAL {{ ?song pred:genre ?genre . }}
         {filters_block}
     }}
     """
@@ -184,25 +185,31 @@ def songs(request):
     query = f"""
     SELECT ?song ?songname ?mainArtist ?artistname ?genre ?popularity ?energy ?danceability ?valence
     WHERE {{
-        ?song a type:Song ;
-        pred:name ?songname ;
-        pred:mainArtist ?mainArtist .
-        ?mainArtist pred:name ?artistname .
+        {{
+            SELECT DISTINCT ?song ?songname ?mainArtist ?artistname ?popularity ?energy ?danceability ?valence
+            WHERE {{
+                ?song a type:Song ;
+                    pred:name ?songname ;
+                    pred:mainArtist ?mainArtist .
+                ?mainArtist pred:name ?artistname .
+                OPTIONAL {{ ?song pred:popularity ?popularity . }}
+                OPTIONAL {{ ?song pred:energy ?energy . }}
+                OPTIONAL {{ ?song pred:danceability ?danceability . }}
+                OPTIONAL {{ ?song pred:valence ?valence . }}
+                OPTIONAL {{ ?song pred:genre ?genre . }}
+                {filters_block}
+            }}
+            {order_clause}
+            LIMIT {page_size}
+            OFFSET {offset}
+        }}
         OPTIONAL {{ ?song pred:genre ?genre . }}
-        OPTIONAL {{ ?song pred:popularity ?popularity . }}
-        OPTIONAL {{ ?song pred:energy ?energy . }}
-        OPTIONAL {{ ?song pred:danceability ?danceability . }}
-        OPTIONAL {{ ?song pred:valence ?valence . }}
-        {filters_block}
     }}
-    {order_clause}
-    LIMIT {page_size}
-    OFFSET {offset}
     """
 
     try:
-        count_bindings = run_select(count_query)
-        total_count = _safe_int(_val(count_bindings[0], 'count', '0')) if count_bindings else 0
+        total_bindings = run_select(count_query)
+        total_count = _safe_int(_val(total_bindings[0], 'total', '0')) if total_bindings else 0
         bindings = run_select(query)
     except SparqlClientError as exc:
         return render(request, 'songs.html', {
@@ -211,48 +218,49 @@ def songs(request):
             'artist_query': artist_query, 'genre_query': genre_query,
             'popularity_min': popularity_min, 'popularity_max': popularity_max,
             'top_metric': top_metric,
-            'page': 1,
+            'total_count': 0,
+            'page': page,
+            'previous_page': max(1, page - 1),
+            'next_page': page + 1,
             'has_previous': False,
             'has_next': False,
-            'total_count': 0,
         })
 
     # Deduplicate by URI (a song can appear multiple times if it has multiple genres)
-    seen = set()
+    seen = {}
     results = []
     for r in bindings:
         uri = _val(r, 'song')
+        genre = _val(r, 'genre', None)
         if uri not in seen:
-            seen.add(uri)
-            results.append({
+            entry = {
                 'uri': uri,
                 'name': _val(r, 'songname'),
                 'artist_uri': _val(r, 'mainArtist'),
                 'artist': _clean_artist_label(_val(r, 'artistname')),
-                'genre': _val(r, 'genre', '-'),
+                'genres': [],
                 'popularity': _safe_float(_val(r, 'popularity', '-')),
                 'energy': _safe_float(_val(r, 'energy', '-')),
                 'danceability': _safe_float(_val(r, 'danceability', '-')),
                 'valence': _safe_float(_val(r, 'valence', '-')),
-            })
-
-    max_page = max(1, (total_count + page_size - 1) // page_size)
-    page = min(page, max_page)
-    has_previous = page > 1
-    has_next = page < max_page
+            }
+            seen[uri] = entry
+            results.append(entry)
+        if genre and genre not in seen[uri]['genres']:
+            seen[uri]['genres'].append(genre)
 
     return render(request, 'songs.html', {
-        'songs': results,
         'song_query': song_query,
+        'songs': results,
         'artist_query': artist_query, 'genre_query': genre_query,
         'popularity_min': popularity_min, 'popularity_max': popularity_max,
         'top_metric': top_metric,
-        'page': page,
-        'has_previous': has_previous,
-        'has_next': has_next,
-        'previous_page': page - 1,
-        'next_page': page + 1,
         'total_count': total_count,
+        'page': page,
+        'previous_page': max(1, page - 1),
+        'next_page': page + 1,
+        'has_previous': page > 1,
+        'has_next': (page * page_size) < total_count,
     })
 
 
@@ -455,17 +463,18 @@ def artist_detail(request):
     ctx = {}
     try:
         bindings = run_select(f"""
-            SELECT ?artistName ?song ?songName ?genre ?popularity ?energy ?danceability
+            SELECT ?artistName ?song ?songName ?genre ?popularity ?energy ?danceability ?valence
             WHERE {{
-              BIND(<{uri}> AS ?artist)
-              ?artist pred:name ?artistName .
-              ?song a type:Song ;
-                    pred:mainArtist ?artist ;
-                    pred:name ?songName .
-              OPTIONAL {{ ?song pred:genre ?genre . }}
-              OPTIONAL {{ ?song pred:popularity ?popularity . }}
-              OPTIONAL {{ ?song pred:energy ?energy . }}
-              OPTIONAL {{ ?song pred:danceability ?danceability . }}
+                BIND(<{uri}> AS ?artist)
+                ?artist pred:name ?artistName .
+                ?song a type:Song ;
+                      pred:mainArtist ?artist ;
+                      pred:name ?songName .
+                OPTIONAL {{ ?song pred:genre ?genre . }}
+                OPTIONAL {{ ?song pred:popularity ?popularity . }}
+                OPTIONAL {{ ?song pred:energy ?energy . }}
+                OPTIONAL {{ ?song pred:danceability ?danceability . }}
+                OPTIONAL {{ ?song pred:valence ?valence . }}
             }}
             ORDER BY ?songName
         """)
@@ -489,10 +498,11 @@ def artist_detail(request):
                     'popularity': _safe_float(_val(r, 'popularity', None)),
                     'energy': _safe_float(_val(r, 'energy', None)),
                     'danceability': _safe_float(_val(r, 'danceability', None)),
+                    'valence': _safe_float(_val(r, 'valence', None)),
                 })
 
         chart_bindings = run_select(f"""
-            SELECT (MIN(?rank) AS ?bestRank)
+            SELECT (MIN(?rank) AS ?bestRank) (COUNT(DISTINCT ?entry) AS ?chartEntries)
             WHERE {{
               BIND(<{uri}> AS ?artist)
               ?entry a type:ChartEntry ;
@@ -502,6 +512,7 @@ def artist_detail(request):
             }}
         """)
         best_rank = _val(chart_bindings[0], 'bestRank') if chart_bindings else '—'
+        chart_entries = _val(chart_bindings[0], 'chartEntries') if chart_bindings else '0'
 
         collab_bindings = run_select(f"""
             SELECT ?collab (SAMPLE(?collabName) AS ?collabDisplay)
@@ -652,15 +663,23 @@ def artist_detail(request):
                     ),
                 })
 
-        pop_values = [s['popularity'] for s in songs_list if isinstance(s['popularity'], float)]
-        avg_pop = round(sum(pop_values) / len(pop_values), 1) if pop_values else '—'
+        energy_values = [s['energy'] for s in songs_list if isinstance(s['energy'], float)]
+        dance_values = [s['danceability'] for s in songs_list if isinstance(s['danceability'], float)]
+        valence_values = [s['valence'] for s in songs_list if isinstance(s['valence'], float)]
+
+        avg_energy = round(sum(energy_values) / len(energy_values), 3) if energy_values else '—'
+        avg_danceability = round(sum(dance_values) / len(dance_values), 3) if dance_values else '—'
+        avg_valence = round(sum(valence_values) / len(valence_values), 3) if valence_values else '—'
 
         ctx['artist'] = {
             'name': artist_name,
             'genres': genres,
             'song_count': len(songs_list),
+            'chart_entries': chart_entries,
             'best_rank': best_rank,
-            'avg_popularity': avg_pop,
+            'avg_energy': avg_energy,
+            'avg_danceability': avg_danceability,
+            'avg_valence': avg_valence,
             'collaborator_count': len(collaborators),
         }
         ctx['songs'] = songs_list

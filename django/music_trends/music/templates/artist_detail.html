@@ -147,28 +147,6 @@
     {% endif %}
   </div>
 
-  {% if artist.top_genres %}
-  <div class="card section">
-    <h2>Most Frequent Genres</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Genre</th>
-          <th>Songs</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for genre, count in artist.top_genres %}
-        <tr>
-          <td><span class="badge">{{ genre }}</span></td>
-          <td>{{ count }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
-
   <div class="card">
     <h2>Songs</h2>
     {% if songs %}
@@ -177,9 +155,9 @@
         <tr>
           <th>Song</th>
           <th>Genre</th>
+          <th>Popularity</th>
           <th>Energy</th>
           <th>Danceability</th>
-          <th>Valence</th>
         </tr>
       </thead>
       <tbody>
@@ -193,9 +171,9 @@
               <span class="text-muted">—</span>
             {% endif %}
           </td>
+          <td>{% if song.popularity %}{{ song.popularity }}{% else %}—{% endif %}</td>
           <td>{% if song.energy %}{{ song.energy }}{% else %}—{% endif %}</td>
           <td>{% if song.danceability %}{{ song.danceability }}{% else %}—{% endif %}</td>
-          <td>{% if song.valence %}{{ song.valence }}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>

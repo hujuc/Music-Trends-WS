@@ -329,20 +329,45 @@ def find_match(bill_song_norm, bill_artists_norm):
     first = bill_song_norm[:1]
     candidates = spotify_index_by_letter.get(first, [])
 
-    best_match = None
-    best_score = 0
+    best_with_artist = None
+    best_with_artist_score = 0
+
+    best_fallback = None
+    best_fallback_score = 0
+
+    bill_artists_set = set(bill_artists_norm)
 
     for s in candidates:
         score = fuzz.ratio(bill_song_norm, s["name_norm"])
-        overlap = len(set(bill_artists_norm) & s["artists_norm"])
+        if score < 85:
+            continue
+
+        overlap = len(bill_artists_set & s["artists_norm"])
 
         total_score = score + (overlap * 10)
 
-        if total_score > best_score and score > 85:
-            best_score = total_score
-            best_match = s
+        if overlap > 0:
+            if total_score > best_with_artist_score:
+                best_with_artist_score = total_score
+                best_with_artist = s
+            continue
 
-    return best_match
+        # Fallback only when title similarity is almost exact and we have no
+        # artist-overlap option. This avoids collisions like same title,
+        # different artists.
+        if score >= 97 and score > best_fallback_score:
+            best_fallback_score = score
+            best_fallback = s
+
+    if best_with_artist is not None:
+        return best_with_artist
+
+    # If we know the Billboard artist(s), avoid cross-artist matches entirely.
+    # Better to skip enrichment than attach attributes from a different track.
+    if bill_artists_set:
+        return None
+
+    return best_fallback
 
 
 PROTECTED_BANDS, SUPPRESSED_FRAGMENTS = detect_protected_band_names(
