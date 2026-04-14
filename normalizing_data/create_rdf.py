@@ -5,13 +5,15 @@ from collections import defaultdict
 from rdflib import Graph, Namespace, URIRef, Literal
 from rapidfuzz import fuzz
 from rdflib.namespace import RDF
+import os
 
 # files e output
 # ta hardcoded por agora, mas é só meter os ficheiros na mesma pasta e correr o script, e ele cria o music.ttl com as triples todas 
-BILLBOARD_FILE = "digital.csv"
-SPOTIFY_FILE = "spotify-tracks-dataset-detailed.csv"
-OUTPUT_FILE = "music.ttl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+BILLBOARD_FILE = os.path.join(BASE_DIR, "digital.csv")
+SPOTIFY_FILE = os.path.join(BASE_DIR, "spotify-tracks-dataset-detailed.csv")
+OUTPUT_FILE = os.path.join(BASE_DIR, "music.ttl")
 billboard = pd.read_csv(BILLBOARD_FILE)
 spotify = pd.read_csv(SPOTIFY_FILE)
 
@@ -472,7 +474,7 @@ for i, row in billboard.iterrows():
     # guys isto é só pra ver isto a funcionar mas se quiserem tirar metam comentario, 
     # é só pra ver o progresso porque isto demora um bocado a correr, e assim dá pra ver que tá a funcionar e mais ou menos quanto tempo falta
     # isto acaba de correr tipo nas 53000 rows 
-    if i % 500 == 0:
+    if i % 1000 == 0:
         print(f"Processed {i} rows...")
 
 # ficheiro gostosinho
