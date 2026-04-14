@@ -132,6 +132,7 @@ def songs(request):
     song_query = request.GET.get('song', '').strip()
     artist_query = request.GET.get('artist', '').strip()
     genre_query = request.GET.get('genre', '').strip()
+    with_audio_features = request.GET.get('with_audio_features', '').strip() == 'on'
     popularity_min = request.GET.get('popularity_min', '').strip()
     popularity_max = request.GET.get('popularity_max', '').strip()
     top_metric = request.GET.get('top_metric', '').strip()
@@ -160,6 +161,12 @@ def songs(request):
     if genre_query:
         filters.append(
             f"FILTER(BOUND(?genre) && CONTAINS(LCASE(STR(?genre)), LCASE(STR({sparql_escape_literal(genre_query)}))))"
+        )
+
+    if with_audio_features:
+        filters.append(
+            "FILTER(BOUND(?energy) || BOUND(?danceability) || BOUND(?valence) || "
+            "BOUND(?acousticness) || BOUND(?speechiness) || BOUND(?instrumentalness) || BOUND(?liveness))"
         )
 
     if popularity_min:
@@ -192,6 +199,13 @@ def songs(request):
         ?mainArtist pred:name ?artistname .
         OPTIONAL {{ ?song pred:genre ?genre . }}
         OPTIONAL {{ ?song pred:popularity ?popularity . }}
+        OPTIONAL {{ ?song pred:energy ?energy . }}
+        OPTIONAL {{ ?song pred:danceability ?danceability . }}
+        OPTIONAL {{ ?song pred:valence ?valence . }}
+        OPTIONAL {{ ?song pred:acousticness ?acousticness . }}
+        OPTIONAL {{ ?song pred:speechiness ?speechiness . }}
+        OPTIONAL {{ ?song pred:instrumentalness ?instrumentalness . }}
+        OPTIONAL {{ ?song pred:liveness ?liveness . }}
         {filters_block}
     }}
     """
@@ -229,6 +243,7 @@ def songs(request):
             'songs': [], 'error_message': str(exc),
             'song_query': song_query,
             'artist_query': artist_query, 'genre_query': genre_query,
+            'with_audio_features': with_audio_features,
             'popularity_min': popularity_min, 'popularity_max': popularity_max,
             'top_metric': top_metric,
             'page': 1,
@@ -284,6 +299,7 @@ def songs(request):
         'songs': results,
         'song_query': song_query,
         'artist_query': artist_query, 'genre_query': genre_query,
+        'with_audio_features': with_audio_features,
         'popularity_min': popularity_min, 'popularity_max': popularity_max,
         'top_metric': top_metric,
         'page': page,
