@@ -112,13 +112,28 @@ def home(request):
 # ── Songs Explorer ────────────────────────────────────────────────────────────
 
 def songs(request):
+    song_query = request.GET.get('song', '').strip()
     artist_query = request.GET.get('artist', '').strip()
     genre_query = request.GET.get('genre', '').strip()
     popularity_min = request.GET.get('popularity_min', '').strip()
     popularity_max = request.GET.get('popularity_max', '').strip()
     top_metric = request.GET.get('top_metric', '').strip()
+    page_raw = request.GET.get('page', '1').strip()
+    page_size = 15
+
+    try:
+        page = max(1, int(page_raw))
+    except ValueError:
+        page = 1
+
+    offset = (page - 1) * page_size
 
     filters = []
+
+    if song_query:
+        filters.append(
+            f"FILTER(CONTAINS(LCASE(STR(?songname)), LCASE(STR({sparql_escape_literal(song_query)}))))"
+        )
 
     if artist_query:
         filters.append(
@@ -144,12 +159,25 @@ def songs(request):
         except ValueError:
             popularity_max = ''
 
-    top_metric = top_metric if top_metric in ('energy', 'danceability', 'popularity') else ''
+    top_metric = top_metric if top_metric in ('energy', 'danceability', 'valence') else ''
     order_clause = f'ORDER BY DESC(?{top_metric})' if top_metric else ''
     filters_block = "\n        ".join(filters)
 
+    count_query = f"""
+    SELECT (COUNT(DISTINCT ?song) AS ?count)
+    WHERE {{
+        ?song a type:Song ;
+              pred:name ?songname ;
+              pred:mainArtist ?mainArtist .
+        ?mainArtist pred:name ?artistname .
+        OPTIONAL {{ ?song pred:genre ?genre . }}
+        OPTIONAL {{ ?song pred:popularity ?popularity . }}
+        {filters_block}
+    }}
+    """
+
     query = f"""
-    SELECT ?song ?songname ?mainArtist ?artistname ?genre ?popularity ?energy ?danceability
+    SELECT ?song ?songname ?mainArtist ?artistname ?genre ?popularity ?energy ?danceability ?valence
     WHERE {{
         ?song a type:Song ;
         pred:name ?songname ;
@@ -159,20 +187,29 @@ def songs(request):
         OPTIONAL {{ ?song pred:popularity ?popularity . }}
         OPTIONAL {{ ?song pred:energy ?energy . }}
         OPTIONAL {{ ?song pred:danceability ?danceability . }}
+        OPTIONAL {{ ?song pred:valence ?valence . }}
         {filters_block}
     }}
     {order_clause}
-    LIMIT 50
+    LIMIT {page_size}
+    OFFSET {offset}
     """
 
     try:
+        count_bindings = run_select(count_query)
+        total_count = _safe_int(_val(count_bindings[0], 'count', '0')) if count_bindings else 0
         bindings = run_select(query)
     except SparqlClientError as exc:
         return render(request, 'songs.html', {
             'songs': [], 'error_message': str(exc),
+            'song_query': song_query,
             'artist_query': artist_query, 'genre_query': genre_query,
             'popularity_min': popularity_min, 'popularity_max': popularity_max,
             'top_metric': top_metric,
+            'page': 1,
+            'has_previous': False,
+            'has_next': False,
+            'total_count': 0,
         })
 
     # Deduplicate by URI (a song can appear multiple times if it has multiple genres)
@@ -191,13 +228,26 @@ def songs(request):
                 'popularity': _safe_float(_val(r, 'popularity', '-')),
                 'energy': _safe_float(_val(r, 'energy', '-')),
                 'danceability': _safe_float(_val(r, 'danceability', '-')),
+                'valence': _safe_float(_val(r, 'valence', '-')),
             })
+
+    max_page = max(1, (total_count + page_size - 1) // page_size)
+    page = min(page, max_page)
+    has_previous = page > 1
+    has_next = page < max_page
 
     return render(request, 'songs.html', {
         'songs': results,
+        'song_query': song_query,
         'artist_query': artist_query, 'genre_query': genre_query,
         'popularity_min': popularity_min, 'popularity_max': popularity_max,
         'top_metric': top_metric,
+        'page': page,
+        'has_previous': has_previous,
+        'has_next': has_next,
+        'previous_page': page - 1,
+        'next_page': page + 1,
+        'total_count': total_count,
     })
 
 
@@ -843,6 +893,90 @@ def insights(request):
     })
 
     return render(request, 'insights.html', ctx)
+
+
+# ── Billboard ─────────────────────────────────────────────────────────────────
+
+def billboard(request):
+    ctx = {}
+    try:
+        dates_bindings = run_select("""
+            SELECT DISTINCT ?date
+            WHERE {
+              ?entry a type:ChartEntry ;
+                     pred:date ?date .
+            }
+            ORDER BY DESC(?date)
+        """)
+        dates = [_val(r, 'date') for r in dates_bindings if _val(r, 'date') != '—']
+
+        date_tree = {}
+        for d in dates:
+            parts = d.split('-')
+            if len(parts) == 3:
+                y, m, day = parts
+                if y not in date_tree:
+                    date_tree[y] = {}
+                if m not in date_tree[y]:
+                    date_tree[y][m] = []
+                date_tree[y][m].append(day)
+
+        ctx['date_tree'] = date_tree
+        ctx['month_names'] = MONTH_NAMES
+
+        selected_date = request.GET.get('date', '').strip()
+        if not selected_date:
+            year = request.GET.get('year', '').strip()
+            month = request.GET.get('month', '').strip()
+            day = request.GET.get('day', '').strip()
+            if year and month and day:
+                selected_date = f"{year}-{month}-{day}"
+
+        if not selected_date and dates:
+            selected_date = dates[0]
+
+        ctx['selected_date'] = selected_date
+
+        if selected_date and len(selected_date.split('-')) == 3:
+            y, m, d = selected_date.split('-')
+            ctx['sel_year'] = y
+            ctx['sel_month'] = m
+            ctx['sel_day'] = d
+
+        if selected_date:
+            date_lit = sparql_escape_literal(selected_date)
+            entries_bindings = run_select(f"""
+                SELECT ?rank ?weeks ?song ?songName ?artist ?artistName
+                WHERE {{
+                  ?entry a type:ChartEntry ;
+                         pred:date {date_lit} ;
+                         pred:rank ?rank ;
+                         pred:weeks ?weeks ;
+                         pred:song ?song .
+                  ?song pred:name ?songName ;
+                        pred:mainArtist ?artist .
+                  ?artist pred:name ?artistName .
+                }}
+            """)
+
+            entries = []
+            for r in entries_bindings:
+                entries.append({
+                    'rank': _safe_int(_val(r, 'rank', '0')),
+                    'weeks': _safe_int(_val(r, 'weeks', '0')),
+                    'song_uri': _val(r, 'song'),
+                    'song_name': _val(r, 'songName'),
+                    'artist_uri': _val(r, 'artist'),
+                    'artist_name': _clean_artist_label(_val(r, 'artistName')),
+                })
+
+            entries.sort(key=lambda x: x['rank'])
+            ctx['entries'] = entries
+
+    except SparqlClientError as exc:
+        ctx['error_message'] = str(exc)
+
+    return render(request, 'billboard.html', ctx)
 
 
 # ── About Data ────────────────────────────────────────────────────────────────
