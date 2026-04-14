@@ -1,6 +1,7 @@
 import hashlib
 import math
 import re
+from datetime import datetime
 
 from django.core.cache import cache
 from django.shortcuts import render, redirect
@@ -687,6 +688,13 @@ def operations(request):
         'artist_delete_songs': [],
     }
 
+    allowed_attributes = {
+        'energy': {'predicate': 'pred:energy', 'min': 0.0, 'max': 1.0},
+        'danceability': {'predicate': 'pred:danceability', 'min': 0.0, 'max': 1.0},
+        'valence': {'predicate': 'pred:valence', 'min': 0.0, 'max': 1.0},
+        'tempo': {'predicate': 'pred:tempo', 'min': 0.0, 'max': 300.0},
+    }
+
     def _load_options():
         cached_options = cache.get(OPERATIONS_OPTIONS_CACHE_KEY)
         if cached_options:
@@ -827,12 +835,180 @@ def operations(request):
         except (SparqlClientError, StopIteration):
             pass
 
+    def _song_uri_by_name(song_name_literal):
+        rows = run_select(f"""
+            SELECT ?song
+            WHERE {{
+              ?song a type:Song ;
+                    pred:name {song_name_literal} .
+            }}
+            LIMIT 1
+        """)
+        return _val(rows[0], 'song', None) if rows else None
+
+    def _artist_uri_by_name(artist_name_literal):
+        rows = run_select(f"""
+            SELECT ?artist
+            WHERE {{
+              ?artist a type:Artist ;
+                      pred:name {artist_name_literal} .
+            }}
+            LIMIT 1
+        """)
+        return _val(rows[0], 'artist', None) if rows else None
+
+    def _song_exists_exact(song_name_literal):
+        return _song_uri_by_name(song_name_literal) is not None
+
+    def _artist_exists_exact(artist_name_literal):
+        return _artist_uri_by_name(artist_name_literal) is not None
+
+    def _entry_exists(entry_uri):
+        rows = run_select(f"""
+            SELECT ?entry
+            WHERE {{
+              BIND(<{entry_uri}> AS ?entry)
+              ?entry a type:ChartEntry .
+            }}
+            LIMIT 1
+        """)
+        return bool(rows)
+
+    def _entry_uri_by_song_and_date(song_name_literal, date_literal):
+        rows = run_select(f"""
+            SELECT ?entry
+            WHERE {{
+              ?song a type:Song ;
+                    pred:name {song_name_literal} .
+              ?entry a type:ChartEntry ;
+                     pred:song ?song ;
+                     pred:date {date_literal} .
+            }}
+            LIMIT 2
+        """)
+        if not rows:
+            return None
+        if len(rows) > 1:
+            raise SparqlClientError('More than one chart entry found for this song/date. Please use ChartEntry URI.')
+        return _val(rows[0], 'entry', None)
+
+    def _song_has_attribute(song_name_literal, predicate):
+        rows = run_select(f"""
+            SELECT ?v
+            WHERE {{
+              ?song a type:Song ;
+                    pred:name {song_name_literal} ;
+                    {predicate} ?v .
+            }}
+            LIMIT 1
+        """)
+        return bool(rows)
+
+    def _song_has_genre(song_name_literal, genre_literal):
+        rows = run_select(f"""
+            SELECT ?genre
+            WHERE {{
+              ?song a type:Song ;
+                    pred:name {song_name_literal} ;
+                    pred:genre {genre_literal} .
+            }}
+            LIMIT 1
+        """)
+        return bool(rows)
+
+    def _new_uri(kind, seed):
+        digest = hashlib.md5(seed.encode()).hexdigest()[:12]
+        return f"http://music.org/{kind}/manual-{digest}"
+
     if request.method == 'POST':
         op = request.POST.get('operation', '')
         try:
-            if op == 'add_genre':
+            # ── Songs CRUD ───────────────────────────────────────────────────
+            if op == 'song_add':
+                song_name_raw = request.POST.get('song_name', '').strip()
+                artist_name_raw = request.POST.get('artist_name', '').strip()
+                genre_raw = request.POST.get('genre', '').strip()
+                if not song_name_raw or not artist_name_raw:
+                    raise SparqlClientError('Song name and main artist are required.')
+                song_name = sparql_escape_literal(song_name_raw)
+                artist_name = sparql_escape_literal(artist_name_raw)
+                genre = sparql_escape_literal(genre_raw) if genre_raw else None
+                if _song_exists_exact(song_name):
+                    raise SparqlClientError('Song already exists (exact name).')
+                artist_uri = _artist_uri_by_name(artist_name)
+                if not artist_uri:
+                    artist_uri = _new_uri('artist', artist_name_raw)
+                    run_update(f"""
+                        INSERT DATA {{
+                          <{artist_uri}> a type:Artist ;
+                            pred:name {artist_name} .
+                        }}
+                    """)
+                song_uri = _new_uri('song', f'{song_name_raw}|{artist_name_raw}')
+                genre_line = f' ;\n                            pred:genre {genre}' if genre else ''
+                run_update(f"""
+                    INSERT DATA {{
+                      <{song_uri}> a type:Song ;
+                        pred:name {song_name} ;
+                        pred:mainArtist <{artist_uri}>{genre_line} .
+                    }}
+                """)
+                ctx['success_message'] = 'Song added successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op == 'song_edit':
+                old_name_raw = request.POST.get('old_song_name', '').strip()
+                new_name_raw = request.POST.get('new_song_name', '').strip()
+                if not old_name_raw or not new_name_raw:
+                    raise SparqlClientError('Both current and new song names are required.')
+                old_name = sparql_escape_literal(old_name_raw)
+                new_name = sparql_escape_literal(new_name_raw)
+                if not _song_exists_exact(old_name):
+                    raise SparqlClientError('Song not found (exact name required).')
+                run_update(f"""
+                    DELETE {{
+                      ?song pred:name {old_name} .
+                    }}
+                    INSERT {{
+                      ?song pred:name {new_name} .
+                    }}
+                    WHERE {{
+                      ?song a type:Song ;
+                            pred:name {old_name} .
+                    }}
+                """)
+                ctx['success_message'] = 'Song name updated successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op == 'song_delete':
+                song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
+                run_update(f"""
+                    DELETE {{
+                      ?entry ?ep ?eo .
+                      ?song ?sp ?so .
+                    }}
+                    WHERE {{
+                      ?song a type:Song ;
+                            pred:name {song_name} .
+                      OPTIONAL {{
+                        ?entry a type:ChartEntry ;
+                               pred:song ?song ;
+                               ?ep ?eo .
+                      }}
+                      ?song ?sp ?so .
+                    }}
+                """)
+                ctx['success_message'] = 'Song deleted successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            # ── Genres CRUD ──────────────────────────────────────────────────
+            elif op in ('add_genre', 'genre_add'):
                 song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
                 genre = sparql_escape_literal(request.POST.get('genre', '').strip())
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
                 run_update(f"""
                     INSERT {{
                       ?song pred:genre {genre} .
@@ -845,44 +1021,250 @@ def operations(request):
                 ctx['success_message'] = 'Genre added successfully.'
                 cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
-            elif op == 'edit_popularity':
+            elif op == 'genre_edit':
                 song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
-                try:
-                    popularity = float(request.POST.get('popularity', ''))
-                    if not (0 <= popularity <= 100):
-                        raise ValueError
-                except ValueError:
-                    raise SparqlClientError('Invalid popularity value (must be 0–100).')
+                old_genre = sparql_escape_literal(request.POST.get('old_genre', '').strip())
+                new_genre = sparql_escape_literal(request.POST.get('new_genre', '').strip())
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
+                if not _song_has_genre(song_name, old_genre):
+                    raise SparqlClientError('Old genre is not linked to this song.')
                 run_update(f"""
                     DELETE {{
-                      ?song pred:popularity ?old .
+                      ?song pred:genre {old_genre} .
                     }}
                     INSERT {{
-                      ?song pred:popularity {popularity} .
+                      ?song pred:genre {new_genre} .
                     }}
                     WHERE {{
                       ?song a type:Song ;
                             pred:name {song_name} ;
-                            pred:popularity ?old .
+                            pred:genre {old_genre} .
                     }}
                 """)
-                ctx['success_message'] = 'Popularity updated successfully.'
+                ctx['success_message'] = 'Genre updated successfully.'
                 cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
-            elif op == 'remove_featured':
+            elif op == 'genre_delete':
                 song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
+                genre = sparql_escape_literal(request.POST.get('genre', '').strip())
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
+                if not _song_has_genre(song_name, genre):
+                    raise SparqlClientError('Genre is not linked to this song.')
                 run_update(f"""
-                    DELETE WHERE {{
+                    DELETE {{
+                      ?song pred:genre {genre} .
+                    }}
+                    WHERE {{
                       ?song a type:Song ;
                             pred:name {song_name} ;
-                            pred:featuredArtist ?feat .
+                            pred:genre {genre} .
                     }}
                 """)
-                ctx['success_message'] = 'Featured artists removed successfully.'
+                ctx['success_message'] = 'Genre removed successfully.'
                 cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
-            elif op == 'add_chart_entry':
+            # ── Attributes CRUD ──────────────────────────────────────────────
+            elif op == 'attribute_add':
                 song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
+                attribute = request.POST.get('attribute', '').strip()
+                attr_config = allowed_attributes.get(attribute)
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
+                if not attr_config:
+                    raise SparqlClientError('Invalid attribute. Allowed: energy, danceability, valence, tempo.')
+                try:
+                    value = float(request.POST.get('value', ''))
+                    if value < attr_config['min'] or value > attr_config['max']:
+                        raise ValueError
+                except ValueError:
+                    raise SparqlClientError(
+                        f"Invalid value for {attribute} (must be between {attr_config['min']} and {attr_config['max']})."
+                    )
+                predicate = attr_config['predicate']
+                if _song_has_attribute(song_name, predicate):
+                    raise SparqlClientError(f'{attribute.capitalize()} already exists. Use edit.')
+                run_update(f"""
+                    INSERT {{
+                      ?song {predicate} {value} .
+                    }}
+                    WHERE {{
+                      ?song a type:Song ;
+                            pred:name {song_name} .
+                    }}
+                """)
+                ctx['success_message'] = f'{attribute.capitalize()} added successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op in ('edit_attribute', 'attribute_edit'):
+                song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
+                attribute = request.POST.get('attribute', '').strip()
+                attr_config = allowed_attributes.get(attribute)
+                if not attr_config:
+                    raise SparqlClientError('Invalid attribute. Allowed: energy, danceability, valence, tempo.')
+                try:
+                    value = float(request.POST.get('value', ''))
+                    if value < attr_config['min'] or value > attr_config['max']:
+                        raise ValueError
+                except ValueError:
+                    raise SparqlClientError(
+                        f"Invalid value for {attribute} (must be between {attr_config['min']} and {attr_config['max']})."
+                    )
+                predicate = attr_config['predicate']
+                if not _song_has_attribute(song_name, predicate):
+                    raise SparqlClientError(f'{attribute.capitalize()} does not exist. Use add.')
+                run_update(f"""
+                    DELETE {{
+                      ?song {predicate} ?old .
+                    }}
+                    INSERT {{
+                      ?song {predicate} {value} .
+                    }}
+                    WHERE {{
+                      ?song a type:Song ;
+                            pred:name {song_name} .
+                      OPTIONAL {{ ?song {predicate} ?old . }}
+                    }}
+                """)
+                ctx['success_message'] = f'{attribute.capitalize()} updated successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op == 'attribute_delete':
+                song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
+                attribute = request.POST.get('attribute', '').strip()
+                attr_config = allowed_attributes.get(attribute)
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
+                if not attr_config:
+                    raise SparqlClientError('Invalid attribute. Allowed: energy, danceability, valence, tempo.')
+                predicate = attr_config['predicate']
+                if not _song_has_attribute(song_name, predicate):
+                    raise SparqlClientError(f'{attribute.capitalize()} is not set for this song.')
+                run_update(f"""
+                    DELETE {{
+                      ?song {predicate} ?v .
+                    }}
+                    WHERE {{
+                      ?song a type:Song ;
+                            pred:name {song_name} ;
+                            {predicate} ?v .
+                    }}
+                """)
+                ctx['success_message'] = f'{attribute.capitalize()} removed successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            # ── Artists CRUD ─────────────────────────────────────────────────
+            elif op in ('artist_add', 'add_artist'):
+                artist_name_raw = request.POST.get('artist_name', '').strip()
+                if not artist_name_raw:
+                    raise SparqlClientError('Artist name is required.')
+                artist_name = sparql_escape_literal(artist_name_raw)
+                if _artist_exists_exact(artist_name):
+                    raise SparqlClientError('Artist already exists (exact name).')
+                artist_uri = _new_uri('artist', artist_name_raw)
+                run_update(f"""
+                    INSERT DATA {{
+                      <{artist_uri}> a type:Artist ;
+                        pred:name {artist_name} .
+                    }}
+                """)
+                ctx['success_message'] = 'Artist added successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op in ('artist_edit', 'edit_artist'):
+                old_name_raw = request.POST.get('old_artist_name', '').strip()
+                new_name_raw = request.POST.get('new_artist_name', '').strip()
+                if not old_name_raw or not new_name_raw:
+                    raise SparqlClientError('Both current and new artist names are required.')
+                old_name = sparql_escape_literal(old_name_raw)
+                new_name = sparql_escape_literal(new_name_raw)
+                if not _artist_exists_exact(old_name):
+                    raise SparqlClientError('Artist not found (exact name required).')
+                run_update(f"""
+                    DELETE {{
+                      ?artist pred:name {old_name} .
+                    }}
+                    INSERT {{
+                      ?artist pred:name {new_name} .
+                    }}
+                    WHERE {{
+                      ?artist a type:Artist ;
+                              pred:name {old_name} .
+                    }}
+                """)
+                ctx['success_message'] = 'Artist name updated successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op in ('artist_delete', 'remove_artist'):
+                artist_name_raw = request.POST.get('artist_name', '').strip()
+                artist_name = sparql_escape_literal(artist_name_raw)
+                force_delete = request.POST.get('force_delete_artist') == '1'
+                artist_uri = _artist_uri_by_name(artist_name)
+                if not artist_uri:
+                    raise SparqlClientError('Artist not found (exact name required).')
+                linked_song_rows = run_select(f"""
+                    SELECT ?songName
+                    WHERE {{
+                      ?song a type:Song ;
+                            pred:mainArtist <{artist_uri}> ;
+                            pred:name ?songName .
+                    }}
+                    ORDER BY ?songName
+                """)
+                linked_song_names = [_val(r, 'songName') for r in linked_song_rows if _val(r, 'songName') != '—']
+                if linked_song_names and not force_delete:
+                    ctx['artist_delete_name'] = artist_name_raw
+                    ctx['artist_delete_songs'] = linked_song_names
+                    raise SparqlClientError(
+                        'Artist is linked as main artist to existing songs. Select "Delete linked songs and chart entries" to continue.'
+                    )
+                if linked_song_names:
+                    run_update(f"""
+                        DELETE {{
+                          ?entry ?ep ?eo .
+                        }}
+                        WHERE {{
+                          ?song a type:Song ;
+                                pred:mainArtist <{artist_uri}> .
+                          ?entry a type:ChartEntry ;
+                                 pred:song ?song ;
+                                 ?ep ?eo .
+                        }}
+                    """)
+                    run_update(f"""
+                        DELETE {{
+                          ?song ?sp ?so .
+                        }}
+                        WHERE {{
+                          ?song a type:Song ;
+                                pred:mainArtist <{artist_uri}> ;
+                                ?sp ?so .
+                        }}
+                    """)
+                run_update(f"""
+                    DELETE WHERE {{
+                      <{artist_uri}> ?p ?o .
+                    }}
+                """)
+                run_update(f"""
+                    DELETE WHERE {{
+                      ?song pred:featuredArtist <{artist_uri}> .
+                    }}
+                """)
+                if linked_song_names:
+                    ctx['success_message'] = f'Artist deleted successfully. Also removed {len(linked_song_names)} linked song(s) and related chart entries.'
+                else:
+                    ctx['success_message'] = 'Artist deleted successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            # ── Chart Entry CRUD ─────────────────────────────────────────────
+            elif op in ('add_chart_entry', 'chart_add'):
+                song_name = sparql_escape_literal(request.POST.get('song_name', '').strip())
+                if not _song_exists_exact(song_name):
+                    raise SparqlClientError('Song not found (exact name required).')
                 try:
                     rank = int(request.POST.get('rank', '0'))
                     weeks = int(request.POST.get('weeks', '0'))
@@ -891,7 +1273,9 @@ def operations(request):
                 except ValueError:
                     raise SparqlClientError('Invalid rank or weeks (must be positive integers).')
                 date = request.POST.get('date', '').strip()
-                if not date or len(date) != 10:
+                try:
+                    datetime.strptime(date, '%Y-%m-%d')
+                except ValueError:
                     raise SparqlClientError('Invalid date format (expected YYYY-MM-DD).')
                 date_lit = sparql_escape_literal(date)
                 entry_id = hashlib.md5(f"{song_name}{date}{rank}".encode()).hexdigest()[:12]
@@ -909,6 +1293,58 @@ def operations(request):
                     }}
                 """)
                 ctx['success_message'] = 'Chart entry added successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op == 'chart_edit':
+                entry_uri = request.POST.get('entry_uri', '').strip()
+                if not entry_uri or not _valid_music_uri(entry_uri) or not _entry_exists(entry_uri):
+                    raise SparqlClientError('Chart entry not found or invalid reference.')
+                try:
+                    rank = int(request.POST.get('rank', '0'))
+                    weeks = int(request.POST.get('weeks', '0'))
+                    if rank < 1 or weeks < 1:
+                        raise ValueError
+                except ValueError:
+                    raise SparqlClientError('Invalid rank or weeks (must be positive integers).')
+                date = request.POST.get('date', '').strip()
+                try:
+                    datetime.strptime(date, '%Y-%m-%d')
+                except ValueError:
+                    raise SparqlClientError('Invalid date format (expected YYYY-MM-DD).')
+                date_lit = sparql_escape_literal(date)
+                run_update(f"""
+                    DELETE {{
+                      <{entry_uri}> pred:rank ?oldRank ;
+                                    pred:weeks ?oldWeeks ;
+                                    pred:date ?oldDate .
+                    }}
+                    INSERT {{
+                      <{entry_uri}> pred:rank {rank} ;
+                                    pred:weeks {weeks} ;
+                                    pred:date {date_lit} .
+                    }}
+                    WHERE {{
+                      <{entry_uri}> a type:ChartEntry ;
+                                    pred:rank ?oldRank ;
+                                    pred:weeks ?oldWeeks ;
+                                    pred:date ?oldDate .
+                    }}
+                """)
+                ctx['success_message'] = 'Chart entry updated successfully.'
+                cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
+
+            elif op in ('remove_chart_entry', 'chart_delete'):
+                entry_uri = request.POST.get('entry_uri', '').strip()
+                if not entry_uri or not _valid_music_uri(entry_uri):
+                    raise SparqlClientError('Invalid chart entry reference.')
+                if not _entry_exists(entry_uri):
+                    raise SparqlClientError('Chart entry not found.')
+                run_update(f"""
+                    DELETE WHERE {{
+                      <{entry_uri}> ?p ?o .
+                    }}
+                """)
+                ctx['success_message'] = 'Chart entry removed successfully.'
                 cache.delete(OPERATIONS_OPTIONS_CACHE_KEY)
 
             else:

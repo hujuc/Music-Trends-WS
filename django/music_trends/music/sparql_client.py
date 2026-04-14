@@ -20,12 +20,12 @@ def sparql_escape_literal(value: str) -> str:
     return f'"{escaped}"'
 
 
-def _post_with_retry(data: dict[str, str], headers: dict[str, str] | None = None) -> requests.Response:
+def _post_with_retry(url: str, data: dict[str, str], headers: dict[str, str] | None = None) -> requests.Response:
     last_exc: requests.RequestException | None = None
     for attempt in range(2):
         try:
             response = requests.post(
-                settings.GRAPHDB_ENDPOINT,
+                url,
                 data=data,
                 headers=headers,
                 timeout=settings.GRAPHDB_TIMEOUT,
@@ -50,6 +50,7 @@ def run_select(query_body: str) -> list[dict[str, Any]]:
 
     try:
         response = _post_with_retry(
+            url=settings.GRAPHDB_ENDPOINT,
             data={"query": full_query},
             headers={"Accept": "application/sparql-results+json"},
         )
@@ -72,9 +73,10 @@ def run_update(query_body: str) -> None:
     prefixes = build_prefixes(settings.SPARQL_PREFIXES)
     full_query = f"{prefixes}\n\n{query_body.strip()}"
 
+    update_endpoint = settings.GRAPHDB_ENDPOINT.rstrip('/') + '/statements'
     try:
-        _post_with_retry(data={"update": full_query})
+        _post_with_retry(url=update_endpoint, data={"update": full_query})
     except requests.RequestException as exc:
         raise SparqlClientError(
-            f"Falha ao executar update SPARQL em {settings.GRAPHDB_ENDPOINT}."
+            f"Falha ao executar update SPARQL em {update_endpoint}."
         ) from exc
