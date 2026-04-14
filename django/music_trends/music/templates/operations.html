@@ -39,6 +39,7 @@
 </datalist>
 
 {{ song_attribute_map|json_script:"song-attribute-map" }}
+{{ song_genres_map|json_script:"song-genres-map" }}
 {{ chart_entries_by_song|json_script:"chart-entries-by-song" }}
 
 <div class="form-card section">
@@ -130,7 +131,12 @@
       </div>
       <div class="form-group">
         <label for="genre_old">Old Genre</label>
-        <input id="genre_old" name="old_genre" type="text" list="genre-options" required />
+        <select id="genre_old" name="old_genre" required>
+          <option value="" disabled selected>Select a genre</option>
+          {% for genre_name in genre_options %}
+            <option value="{{ genre_name }}">{{ genre_name }}</option>
+          {% endfor %}
+        </select>
       </div>
       <div class="form-group">
         <label for="genre_new">New Genre</label>
@@ -509,6 +515,93 @@
     wire('attr_add_song', 'attr_add_key');
     wire('attr_edit_song', 'attr_edit_key');
     wire('attr_delete_song', 'attr_delete_key');
+
+    var songGenresElement = document.getElementById('song-genres-map');
+    var songGenresMap = {};
+    if (songGenresElement && songGenresElement.textContent) {
+      try {
+        songGenresMap = JSON.parse(songGenresElement.textContent);
+      } catch (e) {
+        songGenresMap = {};
+      }
+    }
+
+    function resolveSongKey(songName, sourceMap) {
+      if (!songName) {
+        return null;
+      }
+
+      if (songName in sourceMap) {
+        return songName;
+      }
+
+      var normalizedInput = songName.toLowerCase();
+      var keys = Object.keys(sourceMap);
+
+      var exactKey = keys.find(function (key) {
+        return key.toLowerCase() === normalizedInput;
+      });
+      if (exactKey) {
+        return exactKey;
+      }
+
+      var partialKeys = keys.filter(function (key) {
+        var normalizedKey = key.toLowerCase();
+        return normalizedKey.indexOf(normalizedInput) !== -1 || normalizedInput.indexOf(normalizedKey) !== -1;
+      });
+      if (partialKeys.length === 1) {
+        return partialKeys[0];
+      }
+
+      return null;
+    }
+
+    function updateGenreOldSelect() {
+      var songInput = document.getElementById('genre_edit_song');
+      var select = document.getElementById('genre_old');
+      if (!songInput || !select) {
+        return;
+      }
+
+      var songName = songInput.value.trim();
+      var previousValue = select.value;
+      var resolvedSongKey = resolveSongKey(songName, songGenresMap);
+      var genres = resolvedSongKey ? (songGenresMap[resolvedSongKey] || []) : [];
+
+      select.innerHTML = '';
+
+      if (genres.length === 0) {
+        var emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = songName ? 'No genres found for this song' : 'Select song first';
+        select.appendChild(emptyOption);
+        select.value = '';
+        return;
+      }
+
+      var defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Select a genre';
+      select.appendChild(defaultOption);
+
+      genres.forEach(function (genreName) {
+        var option = document.createElement('option');
+        option.value = genreName;
+        option.textContent = genreName;
+        select.appendChild(option);
+      });
+
+      if (genres.indexOf(previousValue) !== -1) {
+        select.value = previousValue;
+      }
+    }
+
+    var genreEditSongInput = document.getElementById('genre_edit_song');
+    if (genreEditSongInput) {
+      genreEditSongInput.addEventListener('input', updateGenreOldSelect);
+      genreEditSongInput.addEventListener('change', updateGenreOldSelect);
+      updateGenreOldSelect();
+    }
 
     var chartEntriesElement = document.getElementById('chart-entries-by-song');
     var chartEntriesBySong = {};

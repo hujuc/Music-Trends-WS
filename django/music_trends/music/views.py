@@ -442,6 +442,7 @@ def operations(request):
         'chart_entry_options': [],
         'chart_entries_by_song': {},
         'song_attribute_map': {},
+        'song_genres_map': {},
         'artist_delete_name': '',
         'artist_delete_songs': [],
     }
@@ -518,6 +519,25 @@ def operations(request):
                 LIMIT 1000
             """)
             ctx['genre_options'] = [_val(r, 'genre') for r in genre_rows if _val(r, 'genre') != '—']
+
+            song_genre_rows = run_select("""
+                SELECT ?songName ?genre
+                WHERE {
+                  ?song a type:Song ;
+                        pred:name ?songName ;
+                        pred:genre ?genre .
+                }
+                ORDER BY ?songName ?genre
+                LIMIT 10000
+            """)
+            song_genres_map = {}
+            for row in song_genre_rows:
+                song_name = _val(row, 'songName')
+                genre_name = _val(row, 'genre')
+                if song_name == '—' or genre_name == '—':
+                    continue
+                song_genres_map.setdefault(song_name, []).append(genre_name)
+            ctx['song_genres_map'] = song_genres_map
 
             entry_rows = run_select("""
                 SELECT ?entry ?songName ?date ?rank ?weeks
