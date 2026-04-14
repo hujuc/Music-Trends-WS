@@ -90,20 +90,32 @@ def home(request):
         ]
 
         r = run_select("""
-            SELECT ?song ?songName ?popularity
-            WHERE {
-              ?song a type:Song ;
-                    pred:name ?songName ;
-                    pred:popularity ?popularity .
-            }
-            ORDER BY DESC(?popularity)
-            LIMIT 10
+                SELECT ?song ?songName ?bestRank (COUNT(?bestEntry) AS ?weeksAtBestRank)
+                WHERE {
+                    {
+                        SELECT ?song ?songName (MIN(?rank) AS ?bestRank)
+                        WHERE {
+                            ?entry a type:ChartEntry ;
+                                            pred:song ?song ;
+                                            pred:rank ?rank .
+                            ?song pred:name ?songName .
+                        }
+                        GROUP BY ?song ?songName
+                    }
+                    ?bestEntry a type:ChartEntry ;
+                                            pred:song ?song ;
+                                            pred:rank ?bestRank .
+                }
+                GROUP BY ?song ?songName ?bestRank
+                ORDER BY DESC(?weeksAtBestRank) ASC(?bestRank)
+                LIMIT 10
         """)
         ctx['top_songs'] = [
             {
                 'uri': _val(row, 'song'),
                 'name': _val(row, 'songName'),
-                'popularity': _safe_float(_val(row, 'popularity')),
+                'best_rank': _safe_int(_val(row, 'bestRank')),
+                                'weeks_at_best_rank': _safe_int(_val(row, 'weeksAtBestRank')),
             }
             for row in r
         ]
