@@ -30,6 +30,12 @@
         </a>
       </li>
       <li>
+        <a href="{% url 'billboard' %}"
+           {% if request.resolver_match.url_name == 'billboard' %}class="active"{% endif %}>
+          Billboard
+        </a>
+      </li>
+      <li>
         <a href="{% url 'operations' %}"
            {% if request.resolver_match.url_name == 'operations' %}class="active"{% endif %}>
           Operations

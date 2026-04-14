@@ -4,7 +4,7 @@
 {% block content %}
 <h1>SPARQL Operations</h1>
 <p class="text-muted text-sm section">
-  Manage data directly in the GraphDB triplestore via SPARQL INSERT / DELETE / UPDATE.
+  CRUD operations organized by concept: Songs, Genres, Attributes, Artists, and Chart Entries.
 </p>
 
 {% if success_message %}
@@ -14,190 +14,740 @@
   <div class="alert alert-error">{{ error_message }}</div>
 {% endif %}
 
-<!-- ── Add Genre ───────────────────────────────────────────────────── -->
+<datalist id="song-options">
+  {% for song_name in song_options %}
+    <option value="{{ song_name }}"></option>
+  {% endfor %}
+</datalist>
+
+<datalist id="artist-options">
+  {% for artist_name in artist_options %}
+    <option value="{{ artist_name }}"></option>
+  {% endfor %}
+</datalist>
+
+<datalist id="genre-options">
+  {% for genre_name in genre_options %}
+    <option value="{{ genre_name }}"></option>
+  {% endfor %}
+</datalist>
+
+<datalist id="chart-entry-options">
+  {% for entry_uri in chart_entry_options %}
+    <option value="{{ entry_uri }}"></option>
+  {% endfor %}
+</datalist>
+
+{{ song_attribute_map|json_script:"song-attribute-map" }}
+{{ song_genres_map|json_script:"song-genres-map" }}
+{{ chart_entries_by_song|json_script:"chart-entries-by-song" }}
+
 <div class="form-card section">
-  <h2>Add Genre to Song <span class="badge badge-accent">INSERT</span></h2>
-  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-    Inserts a new genre tag for an existing song (matched by exact name).
-  </p>
+  <h2>Songs</h2>
+
+  <h3 class="mt-1">Add</h3>
   <form method="post">
     {% csrf_token %}
-    <input type="hidden" name="operation" value="add_genre" />
+    <input type="hidden" name="operation" value="song_add" />
     <div class="form-grid">
       <div class="form-group">
-        <label for="ag_song">Song Name (exact)</label>
-        <input id="ag_song" name="song_name" type="text" required placeholder="e.g. Blinding Lights" />
+        <label for="song_add_name">Song Name</label>
+        <input id="song_add_name" name="song_name" type="text" required />
       </div>
       <div class="form-group">
-        <label for="ag_genre">New Genre</label>
-        <input id="ag_genre" name="genre" type="text" required placeholder="e.g. alt-pop" />
+        <label for="song_add_artist">Main Artist</label>
+        <input id="song_add_artist" name="artist_name" type="text" list="artist-options" required />
+      </div>
+      <div class="form-group">
+        <label for="song_add_genre">Genre (optional)</label>
+        <input id="song_add_genre" name="genre" type="text" list="genre-options" />
+      </div>
+    </div>
+    <button type="submit">Add Song</button>
+  </form>
+
+  <hr class="divider" />
+  <h3>Edit</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="song_edit" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="song_edit_old">Current Song Name (exact)</label>
+        <input id="song_edit_old" name="old_song_name" type="text" list="song-options" required />
+      </div>
+      <div class="form-group">
+        <label for="song_edit_new">New Song Name</label>
+        <input id="song_edit_new" name="new_song_name" type="text" required />
+      </div>
+    </div>
+    <button type="submit">Edit Song</button>
+  </form>
+
+  <hr class="divider" />
+  <h3>Delete</h3>
+  <form method="post" onsubmit="return confirm('Delete this song and related chart entries?')">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="song_delete" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="song_delete_name">Song Name (exact)</label>
+        <input id="song_delete_name" name="song_name" type="text" list="song-options" required />
+      </div>
+    </div>
+    <button type="submit" class="btn-danger">Delete Song</button>
+  </form>
+</div>
+
+<div class="form-card section">
+  <h2>Genres</h2>
+
+  <h3 class="mt-1">Add</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="genre_add" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="genre_add_song">Song Name (exact)</label>
+        <input id="genre_add_song" name="song_name" type="text" list="song-options" required />
+      </div>
+      <div class="form-group">
+        <label for="genre_add_value">Genre</label>
+        <input id="genre_add_value" name="genre" type="text" list="genre-options" required />
       </div>
     </div>
     <button type="submit">Add Genre</button>
   </form>
-</div>
 
-<!-- ── Edit Numeric Attribute ─────────────────────────────────────── -->
-<div class="form-card section">
-  <h2>Correct Song Attribute <span class="badge badge-accent">DELETE / INSERT</span></h2>
-  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-    Replaces an existing numeric attribute value for a song.
-  </p>
+  <hr class="divider" />
+  <h3>Edit</h3>
   <form method="post">
     {% csrf_token %}
-    <input type="hidden" name="operation" value="edit_attribute" />
+    <input type="hidden" name="operation" value="genre_edit" />
     <div class="form-grid">
       <div class="form-group">
-        <label for="ep_song">Song Name (exact)</label>
-        <input id="ep_song" name="song_name" type="text" required placeholder="e.g. Blinding Lights" />
+        <label for="genre_edit_song">Song Name (exact)</label>
+        <input id="genre_edit_song" name="song_name" type="text" list="song-options" required />
       </div>
       <div class="form-group">
-        <label for="ep_attr">Attribute</label>
-        <select id="ep_attr" name="attribute" required>
+        <label for="genre_old">Old Genre</label>
+        <select id="genre_old" name="old_genre" required>
+          <option value="" disabled selected>Select a genre</option>
+          {% for genre_name in genre_options %}
+            <option value="{{ genre_name }}">{{ genre_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="genre_new">New Genre</label>
+        <input id="genre_new" name="new_genre" type="text" list="genre-options" required />
+      </div>
+    </div>
+    <button type="submit">Edit Genre</button>
+  </form>
+
+  <hr class="divider" />
+  <h3>Delete</h3>
+  <form method="post" onsubmit="return confirm('Remove this genre from the selected song?')">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="genre_delete" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="genre_delete_song">Song Name (exact)</label>
+        <input id="genre_delete_song" name="song_name" type="text" list="song-options" required />
+      </div>
+      <div class="form-group">
+        <label for="genre_delete_value">Genre</label>
+        <input id="genre_delete_value" name="genre" type="text" list="genre-options" required />
+      </div>
+    </div>
+    <button type="submit" class="btn-danger">Delete Genre</button>
+  </form>
+</div>
+
+<div class="form-card section">
+  <h2>Attributes</h2>
+
+  <h3 class="mt-1">Add</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="attribute_add" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="attr_add_song">Song Name (exact)</label>
+        <input id="attr_add_song" name="song_name" type="text" list="song-options" required />
+      </div>
+      <div class="form-group">
+        <label for="attr_add_key">Attribute</label>
+        <select id="attr_add_key" name="attribute" data-attr-mode="missing" required>
           <option value="energy">energy</option>
           <option value="danceability">danceability</option>
           <option value="valence">valence</option>
+          <option value="acousticness">acousticness</option>
+          <option value="speechiness">speechiness</option>
+          <option value="instrumentalness">instrumentalness</option>
+          <option value="liveness">liveness</option>
           <option value="tempo">tempo</option>
         </select>
       </div>
       <div class="form-group">
-        <label for="ep_value">New Value</label>
-        <input id="ep_value" name="value" type="number" step="0.01" required />
+        <label for="attr_add_value">Value</label>
+        <input id="attr_add_value" name="value" type="number" step="0.01" required />
       </div>
     </div>
-    <button type="submit">Update Attribute</button>
+    <button type="submit">Add Attribute</button>
   </form>
-</div>
 
-<!-- ── Remove Featured Artist ─────────────────────────────────────── -->
-<div class="form-card section">
-  <h2>Remove Featured Artists <span class="badge" style="background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5;">DELETE WHERE</span></h2>
-  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-    Removes all <code>pred:featuredArtist</code> triples from a song.
-  </p>
-  <form method="post" onsubmit="return confirm('Remove all featured artists from this song?')">
-    {% csrf_token %}
-    <input type="hidden" name="operation" value="remove_featured" />
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="rf_song">Song Name (exact)</label>
-        <input id="rf_song" name="song_name" type="text" required placeholder="e.g. Old Town Road" />
-      </div>
-    </div>
-    <button type="submit" class="btn-danger">Remove Featured Artists</button>
-  </form>
-</div>
-
-<!-- ── Add Chart Entry ────────────────────────────────────────────── -->
-<div class="form-card section">
-  <h2>Add Chart Entry <span class="badge badge-accent">INSERT</span></h2>
-  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-    Creates a new <code>type:ChartEntry</code> linked to an existing song.
-  </p>
+  <hr class="divider" />
+  <h3>Edit</h3>
   <form method="post">
     {% csrf_token %}
-    <input type="hidden" name="operation" value="add_chart_entry" />
+    <input type="hidden" name="operation" value="attribute_edit" />
     <div class="form-grid">
       <div class="form-group">
-        <label for="ace_song">Song Name (exact)</label>
-        <input id="ace_song" name="song_name" type="text" required placeholder="e.g. Blinding Lights" />
+        <label for="attr_edit_song">Song Name (exact)</label>
+        <input id="attr_edit_song" name="song_name" type="text" list="song-options" required />
       </div>
       <div class="form-group">
-        <label for="ace_rank">Chart Rank</label>
-        <input id="ace_rank" name="rank" type="number" min="1" required />
+        <label for="attr_edit_key">Attribute</label>
+        <select id="attr_edit_key" name="attribute" data-attr-mode="existing" required>
+          <option value="energy">energy</option>
+          <option value="danceability">danceability</option>
+          <option value="valence">valence</option>
+          <option value="acousticness">acousticness</option>
+          <option value="speechiness">speechiness</option>
+          <option value="instrumentalness">instrumentalness</option>
+          <option value="liveness">liveness</option>
+          <option value="tempo">tempo</option>
+        </select>
       </div>
       <div class="form-group">
-        <label for="ace_weeks">Weeks on Chart</label>
-        <input id="ace_weeks" name="weeks" type="number" min="1" required />
+        <label for="attr_edit_value">New Value</label>
+        <input id="attr_edit_value" name="value" type="number" step="0.01" required />
+      </div>
+    </div>
+    <button type="submit">Edit Attribute</button>
+  </form>
+
+  <hr class="divider" />
+  <h3>Delete</h3>
+  <form method="post" onsubmit="return confirm('Remove this attribute from the selected song?')">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="attribute_delete" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="attr_delete_song">Song Name (exact)</label>
+        <input id="attr_delete_song" name="song_name" type="text" list="song-options" required />
       </div>
       <div class="form-group">
-        <label for="ace_date">Date</label>
-        <input id="ace_date" name="date" type="date" required />
+        <label for="attr_delete_key">Attribute</label>
+        <select id="attr_delete_key" name="attribute" data-attr-mode="existing" required>
+          <option value="energy">energy</option>
+          <option value="danceability">danceability</option>
+          <option value="valence">valence</option>
+          <option value="acousticness">acousticness</option>
+          <option value="speechiness">speechiness</option>
+          <option value="instrumentalness">instrumentalness</option>
+          <option value="liveness">liveness</option>
+          <option value="tempo">tempo</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit" class="btn-danger">Delete Attribute</button>
+  </form>
+</div>
+
+<div class="form-card section">
+  <h2>Artists</h2>
+
+  <h3 class="mt-1">Add</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="artist_add" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="artist_add_name">Artist Name</label>
+        <input id="artist_add_name" name="artist_name" type="text" required />
+      </div>
+    </div>
+    <button type="submit">Add Artist</button>
+  </form>
+
+  <hr class="divider" />
+  <h3>Edit</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="artist_edit" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="artist_edit_old">Current Artist Name (exact)</label>
+        <input id="artist_edit_old" name="old_artist_name" type="text" list="artist-options" required />
+      </div>
+      <div class="form-group">
+        <label for="artist_edit_new">New Artist Name</label>
+        <input id="artist_edit_new" name="new_artist_name" type="text" required />
+      </div>
+    </div>
+    <button type="submit">Edit Artist</button>
+  </form>
+
+  <hr class="divider" />
+  <h3>Delete</h3>
+  <form method="post" onsubmit="return confirm('Delete this artist? If the option below is checked, linked songs and chart entries will also be deleted.')">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="artist_delete" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="artist_delete_name">Artist Name (exact)</label>
+        <input id="artist_delete_name" name="artist_name" type="text" list="artist-options" required />
+      </div>
+      <div class="form-group" style="align-self:end;">
+        <label for="force_delete_artist" style="display:flex;gap:0.5rem;align-items:center;">
+          <input id="force_delete_artist" name="force_delete_artist" type="checkbox" value="1" />
+          Delete linked songs and chart entries
+        </label>
+      </div>
+    </div>
+    <button type="submit" class="btn-danger">Delete Artist</button>
+  </form>
+
+  {% if artist_delete_songs %}
+    <div class="alert alert-error" style="margin-top:0.8rem;">
+      <strong>{{ artist_delete_name }}</strong> is main artist of the following songs:
+      <ul style="margin-top:0.5rem;margin-bottom:0;padding-left:1.2rem;">
+        {% for song_name in artist_delete_songs %}
+          <li>{{ song_name }}</li>
+        {% endfor %}
+      </ul>
+      Re-submit with <strong>Delete linked songs and chart entries</strong> checked if you want to delete the artist anyway.
+    </div>
+  {% endif %}
+</div>
+
+<div class="form-card section">
+  <h2>Chart Entries</h2>
+
+  <h3 class="mt-1">Add</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="chart_add" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="ce_add_song">Song Name (exact)</label>
+        <input id="ce_add_song" name="song_name" type="text" list="song-options" required />
+      </div>
+      <div class="form-group">
+        <label for="ce_add_rank">Rank</label>
+        <input id="ce_add_rank" name="rank" type="number" min="1" required />
+      </div>
+      <div class="form-group">
+        <label for="ce_add_weeks">Weeks</label>
+        <input id="ce_add_weeks" name="weeks" type="number" min="1" required />
+      </div>
+      <div class="form-group">
+        <label for="ce_add_date">Date</label>
+        <input id="ce_add_date" name="date" type="date" required />
       </div>
     </div>
     <button type="submit">Add Chart Entry</button>
   </form>
-</div>
 
-<!-- ── Remove Chart Entry by URI ─────────────────────────────────── -->
-<div class="form-card section">
-  <h2>Remove Chart Entry by URI <span class="badge" style="background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#fca5a5;">DELETE WHERE</span></h2>
-  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-    Removes a known <code>type:ChartEntry</code> resource by its URI.
-  </p>
-  <form method="post" onsubmit="return confirm('Delete this chart entry URI?')">
-    {% csrf_token %}
-    <input type="hidden" name="operation" value="remove_chart_entry" />
-    <div class="form-grid">
-      <div class="form-group">
-        <label for="rce_uri">ChartEntry URI</label>
-        <input id="rce_uri" name="entry_uri" type="text" required placeholder="http://music.org/entry/manual-xxxx" />
-      </div>
-    </div>
-    <button type="submit" class="btn-danger">Remove Chart Entry</button>
-  </form>
-</div>
-
-<!-- ── Validation SELECT Queries ─────────────────────────────────── -->
-<div class="form-card section">
-  <h2>Validation Queries <span class="badge">SELECT</span></h2>
-  <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-    Run read-only queries for quick data validation.
-  </p>
+  <hr class="divider" />
+  <h3>Edit</h3>
   <form method="post">
     {% csrf_token %}
-    <input type="hidden" name="operation" value="run_validation" />
+    <input type="hidden" name="operation" value="chart_edit" />
     <div class="form-grid">
       <div class="form-group">
-        <label for="vq_type">Validation Type</label>
-        <select id="vq_type" name="validation_type" required>
-          <option value="base_list">Base list (songs + artists)</option>
-          <option value="by_artist">Search by artist</option>
-          <option value="by_genre">Search by genre</option>
+        <label for="ce_edit_song">Song Name (exact)</label>
+        <input id="ce_edit_song" name="song_name" type="text" list="song-options" required />
+      </div>
+      <div class="form-group">
+        <label for="ce_edit_entry">Chart Entry</label>
+        <select id="ce_edit_entry" name="entry_uri" required>
+          <option value="">Select song first</option>
         </select>
       </div>
       <div class="form-group">
-        <label for="vq_artist">Artist (for by_artist)</label>
-        <input id="vq_artist" name="artist_name" type="text" placeholder="e.g. Drake" />
+        <label for="ce_edit_rank">New Rank</label>
+        <input id="ce_edit_rank" name="rank" type="number" min="1" required />
       </div>
       <div class="form-group">
-        <label for="vq_genre">Genre (for by_genre)</label>
-        <input id="vq_genre" name="genre" type="text" placeholder="e.g. pop" />
+        <label for="ce_edit_weeks">New Weeks</label>
+        <input id="ce_edit_weeks" name="weeks" type="number" min="1" required />
+      </div>
+      <div class="form-group">
+        <label for="ce_edit_date">New Date</label>
+        <input id="ce_edit_date" name="date" type="date" required />
       </div>
     </div>
-    <button type="submit">Run Validation Query</button>
+    <button type="submit">Edit Chart Entry</button>
   </form>
 
-  {% if validation_results %}
-  <div class="card mt-2" style="padding:1rem;">
-    <h3 style="margin-bottom:0.75rem;">Results ({{ validation_type }})</h3>
-    <table>
-      <thead>
-        <tr>
-          {% for col in validation_columns %}
-            <th>{{ col }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in validation_rows %}
-        <tr>
-          {% for value in row %}
-            <td>{{ value }}</td>
-          {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
+  <hr class="divider" />
+  <h3>Delete</h3>
+  <form method="post" onsubmit="return confirm('Delete this chart entry?')">
+    {% csrf_token %}
+    <input type="hidden" name="operation" value="chart_delete" />
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="ce_delete_song">Song Name (exact)</label>
+        <input id="ce_delete_song" name="song_name" type="text" list="song-options" required />
+      </div>
+      <div class="form-group">
+        <label for="ce_delete_entry">Chart Entry</label>
+        <select id="ce_delete_entry" name="entry_uri" required>
+          <option value="">Select song first</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit" class="btn-danger">Delete Chart Entry</button>
+  </form>
 </div>
 
-<div class="card">
-  <h2>Security Note</h2>
-  <p class="text-muted text-sm mt-1">
-    Inputs are validated in backend and attribute updates are restricted to an allow-list of known predicates.
-  </p>
-</div>
+<script>
+  (function () {
+    var allAttributes = ['energy', 'danceability', 'valence', 'acousticness', 'speechiness', 'instrumentalness', 'liveness', 'tempo'];
+    var mapElement = document.getElementById('song-attribute-map');
+    var songAttributeMap = {};
+
+    if (mapElement && mapElement.textContent) {
+      try {
+        songAttributeMap = JSON.parse(mapElement.textContent);
+      } catch (e) {
+        songAttributeMap = {};
+      }
+    }
+
+    function resolveSongKeyForAttributes(songName) {
+      if (!songName) {
+        return null;
+      }
+
+      if (songName in songAttributeMap) {
+        return songName;
+      }
+
+      var normalizedInput = songName.toLowerCase();
+      var keys = Object.keys(songAttributeMap);
+
+      var exactKey = keys.find(function (key) {
+        return key.toLowerCase() === normalizedInput;
+      });
+      if (exactKey) {
+        return exactKey;
+      }
+
+      var partialKeys = keys.filter(function (key) {
+        var normalizedKey = key.toLowerCase();
+        return normalizedKey.indexOf(normalizedInput) !== -1 || normalizedInput.indexOf(normalizedKey) !== -1;
+      });
+      if (partialKeys.length === 1) {
+        return partialKeys[0];
+      }
+
+      return null;
+    }
+
+    function getAllowedAttributes(songName, mode) {
+      if (!songName) {
+        return [];
+      }
+
+      var resolvedSongKey = resolveSongKeyForAttributes(songName);
+      if (!resolvedSongKey) {
+        return mode === 'missing' ? allAttributes : [];
+      }
+
+      var existing = songAttributeMap[resolvedSongKey] || [];
+
+      if (mode === 'missing') {
+        return allAttributes.filter(function (attr) {
+          return existing.indexOf(attr) === -1;
+        });
+      }
+
+      return allAttributes.filter(function (attr) {
+        return existing.indexOf(attr) !== -1;
+      });
+    }
+
+    function updateAttributeSelect(songInputId, selectId) {
+      var songInput = document.getElementById(songInputId);
+      var select = document.getElementById(selectId);
+      if (!songInput || !select) {
+        return;
+      }
+
+      var mode = select.getAttribute('data-attr-mode') || 'existing';
+      var allowed = getAllowedAttributes(songInput.value.trim(), mode);
+      var previousValue = select.value;
+
+      select.innerHTML = '';
+      if (allowed.length === 0) {
+        var placeholder = document.createElement('option');
+        placeholder.value = '';
+        if (!songInput.value.trim()) {
+          placeholder.textContent = 'Fill Song Name first';
+        } else {
+          placeholder.textContent = mode === 'missing' ? 'No attributes available to add' : 'No attributes available';
+        }
+        select.appendChild(placeholder);
+        select.value = '';
+        return;
+      }
+
+      allowed.forEach(function (attr) {
+        var option = document.createElement('option');
+        option.value = attr;
+        option.textContent = attr;
+        select.appendChild(option);
+      });
+
+      if (allowed.indexOf(previousValue) !== -1) {
+        select.value = previousValue;
+      }
+    }
+
+    function wire(songInputId, selectId) {
+      var songInput = document.getElementById(songInputId);
+      if (!songInput) {
+        return;
+      }
+
+      var refresh = function () {
+        updateAttributeSelect(songInputId, selectId);
+      };
+
+      songInput.addEventListener('input', refresh);
+      songInput.addEventListener('change', refresh);
+      refresh();
+    }
+
+    wire('attr_add_song', 'attr_add_key');
+    wire('attr_edit_song', 'attr_edit_key');
+    wire('attr_delete_song', 'attr_delete_key');
+
+    var songGenresElement = document.getElementById('song-genres-map');
+    var songGenresMap = {};
+    if (songGenresElement && songGenresElement.textContent) {
+      try {
+        songGenresMap = JSON.parse(songGenresElement.textContent);
+      } catch (e) {
+        songGenresMap = {};
+      }
+    }
+
+    function resolveSongKey(songName, sourceMap) {
+      if (!songName) {
+        return null;
+      }
+
+      if (songName in sourceMap) {
+        return songName;
+      }
+
+      var normalizedInput = songName.toLowerCase();
+      var keys = Object.keys(sourceMap);
+
+      var exactKey = keys.find(function (key) {
+        return key.toLowerCase() === normalizedInput;
+      });
+      if (exactKey) {
+        return exactKey;
+      }
+
+      var partialKeys = keys.filter(function (key) {
+        var normalizedKey = key.toLowerCase();
+        return normalizedKey.indexOf(normalizedInput) !== -1 || normalizedInput.indexOf(normalizedKey) !== -1;
+      });
+      if (partialKeys.length === 1) {
+        return partialKeys[0];
+      }
+
+      return null;
+    }
+
+    function updateGenreOldSelect() {
+      var songInput = document.getElementById('genre_edit_song');
+      var select = document.getElementById('genre_old');
+      if (!songInput || !select) {
+        return;
+      }
+
+      var songName = songInput.value.trim();
+      var previousValue = select.value;
+      var resolvedSongKey = resolveSongKey(songName, songGenresMap);
+      var genres = resolvedSongKey ? (songGenresMap[resolvedSongKey] || []) : [];
+
+      select.innerHTML = '';
+
+      if (genres.length === 0) {
+        var emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = songName ? 'No genres found for this song' : 'Select song first';
+        select.appendChild(emptyOption);
+        select.value = '';
+        return;
+      }
+
+      var defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Select a genre';
+      select.appendChild(defaultOption);
+
+      genres.forEach(function (genreName) {
+        var option = document.createElement('option');
+        option.value = genreName;
+        option.textContent = genreName;
+        select.appendChild(option);
+      });
+
+      if (genres.indexOf(previousValue) !== -1) {
+        select.value = previousValue;
+      }
+    }
+
+    var genreEditSongInput = document.getElementById('genre_edit_song');
+    if (genreEditSongInput) {
+      genreEditSongInput.addEventListener('input', updateGenreOldSelect);
+      genreEditSongInput.addEventListener('change', updateGenreOldSelect);
+      updateGenreOldSelect();
+    }
+
+    var chartEntriesElement = document.getElementById('chart-entries-by-song');
+    var chartEntriesBySong = {};
+    if (chartEntriesElement && chartEntriesElement.textContent) {
+      try {
+        chartEntriesBySong = JSON.parse(chartEntriesElement.textContent);
+      } catch (e) {
+        chartEntriesBySong = {};
+      }
+    }
+
+    function updateChartEntrySelect(songInputId, selectId) {
+      var songInput = document.getElementById(songInputId);
+      var select = document.getElementById(selectId);
+      if (!songInput || !select) {
+        return;
+      }
+
+      var songName = songInput.value.trim();
+      var entries = chartEntriesBySong[songName] || [];
+      if (entries.length === 0 && songName) {
+        var normalizedInput = songName.toLowerCase();
+        var keys = Object.keys(chartEntriesBySong);
+
+        var exactKey = keys.find(function (key) {
+          return key.toLowerCase() === normalizedInput;
+        });
+        if (exactKey) {
+          entries = chartEntriesBySong[exactKey] || [];
+        }
+
+        if (entries.length === 0) {
+          var partialKeys = keys.filter(function (key) {
+            var normalizedKey = key.toLowerCase();
+            return normalizedKey.indexOf(normalizedInput) !== -1 || normalizedInput.indexOf(normalizedKey) !== -1;
+          });
+
+          if (partialKeys.length === 1) {
+            entries = chartEntriesBySong[partialKeys[0]] || [];
+          }
+        }
+      }
+      var previousValue = select.value;
+      select.innerHTML = '';
+
+      if (entries.length === 0) {
+        var emptyOption = document.createElement('option');
+        emptyOption.value = '';
+        emptyOption.textContent = songName ? 'No chart entries found for this song' : 'Select song first';
+        select.appendChild(emptyOption);
+        select.value = '';
+        return;
+      }
+
+      var defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = 'Select chart entry';
+      select.appendChild(defaultOption);
+
+      entries.forEach(function (entry) {
+        var option = document.createElement('option');
+        option.value = entry.uri;
+        option.textContent = entry.label;
+        select.appendChild(option);
+      });
+
+      if (previousValue) {
+        select.value = previousValue;
+      }
+    }
+
+    function fillChartEditFieldsFromSelection() {
+      var entrySelect = document.getElementById('ce_edit_entry');
+      var rankInput = document.getElementById('ce_edit_rank');
+      var weeksInput = document.getElementById('ce_edit_weeks');
+      var dateInput = document.getElementById('ce_edit_date');
+      var songInput = document.getElementById('ce_edit_song');
+
+      if (!entrySelect || !rankInput || !weeksInput || !dateInput || !songInput) {
+        return;
+      }
+
+      var songName = songInput.value.trim();
+      var entries = chartEntriesBySong[songName] || [];
+      if (entries.length === 0 && songName) {
+        var normalizedInput = songName.toLowerCase();
+        var keys = Object.keys(chartEntriesBySong);
+        var exactKey = keys.find(function (key) {
+          return key.toLowerCase() === normalizedInput;
+        });
+        if (exactKey) {
+          entries = chartEntriesBySong[exactKey] || [];
+        }
+      }
+
+      var selected = entries.find(function (entry) {
+        return entry.uri === entrySelect.value;
+      });
+
+      if (!selected) {
+        return;
+      }
+
+      rankInput.value = selected.rank;
+      weeksInput.value = selected.weeks;
+      dateInput.value = selected.date;
+    }
+
+    var chartSongInput = document.getElementById('ce_edit_song');
+    if (chartSongInput) {
+      var refreshChartSelect = function () {
+        updateChartEntrySelect('ce_edit_song', 'ce_edit_entry');
+        fillChartEditFieldsFromSelection();
+      };
+      chartSongInput.addEventListener('input', refreshChartSelect);
+      chartSongInput.addEventListener('change', refreshChartSelect);
+      refreshChartSelect();
+    }
+
+    var chartEditEntrySelect = document.getElementById('ce_edit_entry');
+    if (chartEditEntrySelect) {
+      chartEditEntrySelect.addEventListener('change', fillChartEditFieldsFromSelection);
+    }
+
+    var chartDeleteSongInput = document.getElementById('ce_delete_song');
+    if (chartDeleteSongInput) {
+      var refreshChartDeleteSelect = function () {
+        updateChartEntrySelect('ce_delete_song', 'ce_delete_entry');
+      };
+      chartDeleteSongInput.addEventListener('input', refreshChartDeleteSelect);
+      chartDeleteSongInput.addEventListener('change', refreshChartDeleteSelect);
+      refreshChartDeleteSelect();
+    }
+  })();
+</script>
 
 {% endblock %}

@@ -47,29 +47,105 @@
       <div class="stat-number">{{ artist.avg_valence }}</div>
       <div class="stat-label">Avg. Valence</div>
     </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ artist.collaborator_count }}</div>
+      <div class="stat-label">Collaborators</div>
+    </div>
   </div>
 
-  {% if artist.top_genres %}
   <div class="card section">
-    <h2>Most Frequent Genres</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Genre</th>
-          <th>Songs</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for genre, count in artist.top_genres %}
-        <tr>
-          <td><span class="badge">{{ genre }}</span></td>
-          <td>{{ count }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <div class="collab-headline">
+      <h2>Collaboration Network</h2>
+      {% if collaborators %}
+      <div class="view-switch" role="tablist" aria-label="Collaboration view switch">
+        <button type="button" class="view-switch-btn active" data-view="graph" aria-pressed="true">Graph</button>
+        <button type="button" class="view-switch-btn" data-view="table" aria-pressed="false">Table</button>
+      </div>
+      {% endif %}
+    </div>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      Ranked by final score = (shared songs × 2) + overlapping chart dates.
+    </p>
+
+    {% if collaborators %}
+      <div class="collab-panel is-visible" data-panel="graph">
+        <div class="collab-network graph-layout">
+        <div class="collab-graph-stage">
+          <svg class="collab-edges" viewBox="0 0 100 100" aria-hidden="true">
+            {% for n in collab_graph %}
+              <line x1="50" y1="50" x2="{{ n.x }}" y2="{{ n.y }}"></line>
+            {% endfor %}
+          </svg>
+
+          <div class="graph-center-node">{{ artist.name }}</div>
+
+          {% for n in collab_graph %}
+            <a
+              class="graph-node"
+              href="{% url 'artist_detail' %}?uri={{ n.uri }}"
+              style="--x: {{ n.x }}%; --y: {{ n.y }}%;"
+              title="{{ n.tooltip }}"
+            >
+              <span class="node-name">{{ n.name }}</span>
+              <span class="node-score">Score {{ n.score }} · Overlap {{ n.chart_overlap }}</span>
+              <span class="node-count">{{ n.shared_songs }} song{{ n.shared_songs|pluralize }}</span>
+              {% for track in n.preview_tracks %}
+                <span class="node-track">{{ track }}</span>
+              {% endfor %}
+              {% if n.more_tracks %}
+                <span class="node-track text-muted">+{{ n.more_tracks }} more</span>
+              {% endif %}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+      </div>
+
+      <div class="collab-panel" data-panel="table">
+        <div class="collab-network table-layout">
+          <table class="collab-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Collaborator</th>
+                <th>Shared Songs</th>
+                <th>Chart Overlap</th>
+                <th>Final Score</th>
+                <th>Songs Together</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in collaborators %}
+              <tr>
+                <td class="text-muted">{{ forloop.counter }}</td>
+                <td><a href="{% url 'artist_detail' %}?uri={{ c.uri }}">{{ c.name }}</a></td>
+                <td>{{ c.shared_songs }}</td>
+                <td>{{ c.chart_overlap }}</td>
+                <td>{{ c.score }}</td>
+                <td>
+                  {% if c.shared_tracks %}
+                    <details class="shared-songs-details">
+                      <summary>{{ c.shared_tracks|length }} song{{ c.shared_tracks|length|pluralize }}</summary>
+                      <div class="shared-songs-list mt-1">
+                        {% for title in c.shared_tracks %}
+                          <span class="badge badge-song">{{ title }}</span>
+                        {% endfor %}
+                      </div>
+                    </details>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <p class="text-muted text-sm">No collaboration links found for this artist.</p>
+    {% endif %}
   </div>
-  {% endif %}
 
   <div class="card">
     <h2>Songs</h2>
@@ -79,9 +155,9 @@
         <tr>
           <th>Song</th>
           <th>Genre</th>
+          <th>Popularity</th>
           <th>Energy</th>
           <th>Danceability</th>
-          <th>Valence</th>
         </tr>
       </thead>
       <tbody>
@@ -95,9 +171,9 @@
               <span class="text-muted">—</span>
             {% endif %}
           </td>
+          <td>{% if song.popularity %}{{ song.popularity }}{% else %}—{% endif %}</td>
           <td>{% if song.energy %}{{ song.energy }}{% else %}—{% endif %}</td>
           <td>{% if song.danceability %}{{ song.danceability }}{% else %}—{% endif %}</td>
-          <td>{% if song.valence %}{{ song.valence }}{% else %}—{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -110,6 +186,30 @@
 {% else %}
   <p class="text-muted">Artist not found.</p>
   <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>
+{% endif %}
+
+{% if collaborators %}
+<script>
+  (function () {
+    const buttons = document.querySelectorAll('.view-switch-btn');
+    const panels = document.querySelectorAll('.collab-panel');
+
+    function showPanel(view) {
+      panels.forEach((panel) => {
+        panel.classList.toggle('is-visible', panel.dataset.panel === view);
+      });
+      buttons.forEach((btn) => {
+        const isActive = btn.dataset.view === view;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => showPanel(btn.dataset.view));
+    });
+  })();
+</script>
 {% endif %}
 
 {% endblock %}

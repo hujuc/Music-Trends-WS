@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Billboard Chart - Music Trends{% endblock %}
+
+{% block content %}
+<h1>Billboard Chart Explorer</h1>
+<p class="text-muted text-sm section">Select a week to view the Billboard chart rankings for that period.</p>
+
+{% if error_message %}
+<div class="alert alert-error">
+  {{ error_message }}
+</div>
+{% endif %}
+
+<div class="form-card section">
+  <form method="get" action="{% url 'billboard' %}">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="year-select">Year</label>
+        <select name="year" id="year-select">
+          <option value="">Year</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="month-select">Month</label>
+        <select name="month" id="month-select">
+          <option value="">Month</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="day-select">Day</label>
+        <select name="day" id="day-select">
+          <option value="">Day</option>
+        </select>
+      </div>
+    </div>
+    <button type="submit">View Chart</button>
+  </form>
+</div>
+
+{{ date_tree|json_script:"date-tree-data" }}
+{{ month_names|json_script:"month-names-data" }}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const dateTree = JSON.parse(document.getElementById('date-tree-data').textContent);
+    const monthNames = JSON.parse(document.getElementById('month-names-data').textContent);
+
+    const yearSelect = document.getElementById('year-select');
+    const monthSelect = document.getElementById('month-select');
+    const daySelect = document.getElementById('day-select');
+
+    const selYear = "{{ sel_year|default:'' }}";
+    const selMonth = "{{ sel_month|default:'' }}";
+    const selDay = "{{ sel_day|default:'' }}";
+
+    function populateYears() {
+      yearSelect.options.length = 1;
+      const years = Object.keys(dateTree).sort((a, b) => b - a); // Descending
+      years.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        if (y === selYear) opt.selected = true;
+        yearSelect.appendChild(opt);
+      });
+      updateMonths();
+    }
+
+    function updateMonths() {
+      monthSelect.options.length = 1;
+      daySelect.options.length = 1;
+      const y = yearSelect.value;
+      if (y && dateTree[y]) {
+        const months = Object.keys(dateTree[y]).sort();
+        months.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = monthNames[m] || m;
+          if (m === selMonth) opt.selected = true;
+          monthSelect.appendChild(opt);
+        });
+      }
+      updateDays();
+    }
+
+    function updateDays() {
+      daySelect.options.length = 1;
+      const y = yearSelect.value;
+      const m = monthSelect.value;
+      if (y && m && dateTree[y] && dateTree[y][m]) {
+        const days = dateTree[y][m].sort((a, b) => b - a); // Descending days
+        days.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          if (d === selDay) opt.selected = true;
+          daySelect.appendChild(opt);
+        });
+      }
+    }
+
+    yearSelect.addEventListener('change', updateMonths);
+    monthSelect.addEventListener('change', updateDays);
+
+    populateYears();
+  });
+</script>
+
+{% if selected_date and entries %}
+<div class="section">
+  <div class="card">
+    <h2>Billboard Hot 100 Chart <span class="badge badge-accent">{{ selected_date }}</span></h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Song</th>
+          <th>Artist</th>
+          <th>Weeks in Chart</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr>
+          <td>
+            {% if entry.rank <= 10 %}<strong style="color: #d32f2f;">#{{ entry.rank }}</strong>{% else %}<span
+                class="text-muted">#{{ entry.rank }}</span>{% endif %}
+          </td>
+          <td>
+            <a href="{% url 'song_detail' %}?uri={{ entry.song_uri|urlencode }}">
+              {{ entry.song_name }}
+            </a>
+          </td>
+          <td>
+            <a href="{% url 'artist_detail' %}?uri={{ entry.artist_uri|urlencode }}">
+              {{ entry.artist_name }}
+            </a>
+          </td>
+          <td>{{ entry.weeks }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif selected_date %}
+<div class="section">
+  <div class="card">
+    <p class="text-muted text-sm">No chart entries found for {{ selected_date }}.</p>
+  </div>
+</div>
+{% else %}
+<div class="section">
+  <div class="card">
+    <p class="text-muted text-sm">Please select a date to view the chart.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
