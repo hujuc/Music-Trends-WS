@@ -55,14 +55,14 @@
 
   <div class="section">
     <div class="card">
-      <h2>Top Songs by Popularity</h2>
+      <h2>Top Songs by Best Chart Rank</h2>
       {% if top_songs %}
         <table>
           <thead>
             <tr>
               <th>#</th>
               <th>Song</th>
-              <th>Popularity</th>
+              <th>Best Rank</th>
             </tr>
           </thead>
           <tbody>
@@ -70,7 +70,7 @@
             <tr>
               <td class="text-muted">{{ forloop.counter }}</td>
               <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
-              <td>{{ song.popularity }}</td>
+              <td>#{{ song.best_rank }}</td>
             </tr>
             {% endfor %}
           </tbody>

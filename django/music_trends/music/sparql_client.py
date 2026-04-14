@@ -10,6 +10,14 @@ class SparqlClientError(Exception):
     """Raised when the SPARQL endpoint is unavailable or returns invalid data."""
 
 
+def _get_update_endpoint() -> str:
+    endpoint = settings.GRAPHDB_ENDPOINT.rstrip('/')
+    # GraphDB expects SPARQL UPDATE requests at /repositories/<repo>/statements.
+    if endpoint.endswith('/statements'):
+        return endpoint
+    return f"{endpoint}/statements"
+
+
 def build_prefixes(prefixes: dict[str, str]) -> str:
     return "\n".join(f"PREFIX {alias}: <{uri}>" for alias, uri in prefixes.items())
 
@@ -47,10 +55,11 @@ def run_select(query_body: str) -> list[dict[str, Any]]:
 def run_update(query_body: str) -> None:
     prefixes = build_prefixes(settings.SPARQL_PREFIXES)
     full_query = f"{prefixes}\n\n{query_body.strip()}"
+    update_endpoint = _get_update_endpoint()
 
     try:
         response = requests.post(
-            settings.GRAPHDB_ENDPOINT,
+            update_endpoint,
             data={"update": full_query},
             timeout=settings.GRAPHDB_TIMEOUT,
         )

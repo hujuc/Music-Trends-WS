@@ -33,12 +33,6 @@
               <td>{% for g in song.genres %}<span class="badge">{{ g }}</span> {% endfor %}</td>
             </tr>
             {% endif %}
-            {% if song.popularity %}
-            <tr>
-              <td class="text-muted text-sm">Popularity</td>
-              <td>{{ song.popularity }} / 100</td>
-            </tr>
-            {% endif %}
             {% if song.tempo %}
             <tr>
               <td class="text-muted text-sm">Tempo</td>

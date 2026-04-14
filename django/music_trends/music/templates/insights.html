@@ -43,12 +43,12 @@
   <div class="card">
     <h2>Hidden Gems <span class="badge badge-accent">Top 30</span></h2>
     <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-      High energy (&ge; 0.75) + danceability (&ge; 0.75), but low popularity (&lt; 40) — underrated bangers.
+      High energy (&ge; 0.75) + danceability (&ge; 0.75), with low chart presence (at most 2 chart entries).
     </p>
     {% if insights.hidden_gems %}
     <table>
       <thead>
-        <tr><th>#</th><th>Song</th><th>Artist</th><th>Energy</th><th>Dance</th><th>Popularity</th></tr>
+        <tr><th>#</th><th>Song</th><th>Artist</th><th>Energy</th><th>Dance</th><th>Chart Entries</th></tr>
       </thead>
       <tbody>
         {% for s in insights.hidden_gems %}
@@ -58,7 +58,7 @@
           <td><a href="{% url 'artist_detail' %}?uri={{ s.artist_uri }}">{{ s.artist }}</a></td>
           <td>{{ s.energy }}</td>
           <td>{{ s.danceability }}</td>
-          <td>{{ s.popularity }}</td>
+          <td>{{ s.chart_count }}</td>
         </tr>
         {% endfor %}
       </tbody>
