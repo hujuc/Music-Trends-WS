@@ -52,6 +52,58 @@ python create_rdf.py
 
 At the end, the script writes/updates `normalizing_data/music.ttl`.
 
+### Ontology and Validation Artifacts
+
+After running the generator, these RDF artifacts are available:
+
+- `normalizing_data/music.ttl`: full generated data + ontology declarations used by the app.
+- `normalizing_data/ontology.ttl`: ontology-only layer (classes, properties, domain/range, inverse/sub/equivalent links).
+- `normalizing_data/shapes.ttl`: minimal SHACL validation shapes.
+- `docs/semantic_demo_queries.rq`: SPARQL queries for semantic demo (genres, charts, albums, inference checks).
+
+Quick validation commands:
+
+```bash
+cd normalizing_data
+python -c "from rdflib import Graph; g=Graph(); g.parse('music.ttl', format='turtle'); print(len(g))"
+python -c "from rdflib import Graph; Graph().parse('ontology.ttl', format='turtle'); Graph().parse('shapes.ttl', format='turtle'); print('ok')"
+```
+
+Compatibility note:
+
+- Existing predicates used by the Django app were preserved.
+- New semantic predicates (`pred:hasGenre`, `pred:inChart`, `pred:album`, `pred:performer`) were added incrementally.
+
+### Implemented Inferences (RDFS/OWL + Materialized)
+
+The project now includes schema-level semantics and materialized inferred triples generated in `normalizing_data/create_rdf.py`.
+
+Schema-level additions:
+
+- New classes: `type:ChartedSong`, `type:HitSong`, `type:HitArtist`, `type:TrendingArtist`.
+- New properties: `pred:hasChartEntry` and `pred:appearsInChart`.
+- `pred:hasChartEntry` is declared as inverse of `pred:song`.
+
+Materialized inferred data emitted in `music.ttl`:
+
+- `type:ChartedSong`: songs with at least one chart entry.
+- `type:HitSong`: songs with at least one entry where `pred:rank <= 10`.
+- `type:HitArtist`: artists who perform at least one `type:HitSong`.
+- `type:TrendingArtist`: artists with a top-10 song from `2024-01-01` onward.
+- `pred:hasChartEntry`: explicit song-to-entry relation.
+- `pred:appearsInChart`: explicit artist-to-chart relation.
+
+Quick SPARQL checks in GraphDB:
+
+```sparql
+SELECT (COUNT(*) AS ?c) WHERE { ?s a type:ChartedSong . }
+SELECT (COUNT(*) AS ?c) WHERE { ?s a type:HitSong . }
+SELECT (COUNT(*) AS ?c) WHERE { ?s a type:HitArtist . }
+SELECT (COUNT(*) AS ?c) WHERE { ?s a type:TrendingArtist . }
+SELECT (COUNT(*) AS ?c) WHERE { ?s pred:hasChartEntry ?o . }
+SELECT (COUNT(*) AS ?c) WHERE { ?s pred:appearsInChart ?o . }
+```
+
 ## 4) Configure App Environment Variables
 
 The app already works without extra variables if you use the default endpoint above.

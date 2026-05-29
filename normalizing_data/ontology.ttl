@@ -1,0 +1,148 @@
+@prefix music: <http://music.org/> .
+@prefix pred: <http://music.org/pred/> .
+@prefix type: <http://music.org/type/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+music:MusicOntology a owl:Ontology .
+
+type:Song a owl:Class .
+type:ChartedSong a owl:Class ;
+    rdfs:subClassOf type:Song .
+
+type:HitSong a owl:Class ;
+    rdfs:subClassOf type:ChartedSong .
+
+type:Artist a owl:Class .
+type:HitArtist a owl:Class ;
+    rdfs:subClassOf type:Artist .
+
+type:TrendingArtist a owl:Class ;
+    rdfs:subClassOf type:Artist .
+
+type:Genre a owl:Class .
+type:Chart a owl:Class .
+type:Album a owl:Class .
+type:ChartEntry a owl:Class ;
+    rdfs:subClassOf prov:Entity .
+
+type:Song owl:disjointWith type:ChartEntry .
+
+pred:performer a owl:ObjectProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range type:Artist ;
+    owl:inverseOf pred:performed .
+
+pred:performed a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range type:Song .
+
+pred:mainArtist a owl:ObjectProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range type:Artist ;
+    rdfs:subPropertyOf pred:performer .
+
+pred:featuredArtist a owl:ObjectProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range type:Artist ;
+    rdfs:subPropertyOf pred:performer .
+
+pred:song a owl:ObjectProperty ;
+    rdfs:domain type:ChartEntry ;
+    rdfs:range type:Song .
+
+pred:entrySong a owl:ObjectProperty ;
+    rdfs:domain type:ChartEntry ;
+    rdfs:range type:Song ;
+    owl:equivalentProperty pred:song .
+
+pred:hasChartEntry a owl:ObjectProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range type:ChartEntry ;
+    owl:inverseOf pred:song .
+
+pred:inChart a owl:ObjectProperty ;
+    rdfs:domain type:ChartEntry ;
+    rdfs:range type:Chart .
+
+pred:appearsInChart a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range type:Chart .
+
+pred:hasGenre a owl:ObjectProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range type:Genre .
+
+pred:album a owl:ObjectProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range type:Album .
+
+pred:name a owl:DatatypeProperty ;
+    rdfs:range xsd:string .
+
+pred:rank a owl:DatatypeProperty ;
+    rdfs:domain type:ChartEntry ;
+    rdfs:range xsd:integer .
+
+pred:weeks a owl:DatatypeProperty ;
+    rdfs:domain type:ChartEntry ;
+    rdfs:range xsd:integer .
+
+pred:date a owl:DatatypeProperty ;
+    rdfs:domain type:ChartEntry ;
+    rdfs:range xsd:date .
+
+pred:popularity a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:energy a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:danceability a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:tempo a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:valence a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:loudness a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:speechiness a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:acousticness a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:instrumentalness a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:liveness a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:decimal .
+
+pred:duration_ms a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:integer .
+
+pred:explicit a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:boolean .
+
+pred:albumName a owl:DatatypeProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range xsd:string .

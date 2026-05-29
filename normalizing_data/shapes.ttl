@@ -1,0 +1,70 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix music: <http://music.org/> .
+@prefix pred: <http://music.org/pred/> .
+@prefix type: <http://music.org/type/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+music:ChartEntryShape
+    a sh:NodeShape ;
+    sh:targetClass type:ChartEntry ;
+    sh:property [
+        sh:path pred:song ;
+        sh:minCount 1 ;
+        sh:class type:Song ;
+    ] ;
+    sh:property [
+        sh:path pred:rank ;
+        sh:minCount 1 ;
+        sh:datatype xsd:integer ;
+    ] ;
+    sh:property [
+        sh:path pred:weeks ;
+        sh:minCount 1 ;
+        sh:datatype xsd:integer ;
+    ] ;
+    sh:property [
+        sh:path pred:date ;
+        sh:minCount 1 ;
+        sh:datatype xsd:date ;
+    ] ;
+    sh:property [
+        sh:path pred:inChart ;
+        sh:minCount 1 ;
+        sh:class type:Chart ;
+    ] .
+
+music:SongShape
+    a sh:NodeShape ;
+    sh:targetClass type:Song ;
+    sh:property [
+        sh:path pred:name ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path pred:mainArtist ;
+        sh:minCount 1 ;
+        sh:class type:Artist ;
+    ] .
+
+music:AudioFeatureShape
+    a sh:NodeShape ;
+    sh:targetClass type:Song ;
+    sh:property [
+        sh:path pred:danceability ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 1 ;
+    ] ;
+    sh:property [
+        sh:path pred:energy ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 1 ;
+    ] ;
+    sh:property [
+        sh:path pred:valence ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 1 ;
+    ] .

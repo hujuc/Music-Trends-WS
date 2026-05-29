@@ -1,10 +1,11 @@
 import pandas as pd
 import re
 import hashlib
+from decimal import Decimal, InvalidOperation
 from collections import defaultdict
 from rdflib import Graph, Namespace, URIRef, Literal
 from rapidfuzz import fuzz
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, RDFS, OWL, XSD
 
 # files e output
 # ta hardcoded por agora, mas é só meter os ficheiros na mesma pasta e correr o script, e ele cria o music.ttl com as triples todas 
@@ -23,8 +24,148 @@ BASE = Namespace("http://music.org/")
 PRED = Namespace("http://music.org/pred/")
 TYPE = Namespace("http://music.org/type/")
 
+g.bind("music", BASE)
 g.bind("pred", PRED)
 g.bind("type", TYPE)
+g.bind("rdf", RDF)
+g.bind("rdfs", RDFS)
+g.bind("owl", OWL)
+g.bind("xsd", XSD)
+
+
+def add_ontology_schema(graph):
+    song = TYPE.Song
+    charted_song = TYPE.ChartedSong
+    hit_song = TYPE.HitSong
+    artist = TYPE.Artist
+    hit_artist = TYPE.HitArtist
+    trending_artist = TYPE.TrendingArtist
+    genre = TYPE.Genre
+    chart = TYPE.Chart
+    chart_entry = TYPE.ChartEntry
+    album = TYPE.Album
+
+    graph.add((BASE.MusicOntology, RDF.type, OWL.Ontology))
+
+    for cls in (
+        song,
+        charted_song,
+        hit_song,
+        artist,
+        hit_artist,
+        trending_artist,
+        genre,
+        chart,
+        chart_entry,
+        album,
+    ):
+        graph.add((cls, RDF.type, OWL.Class))
+
+    graph.add((charted_song, RDFS.subClassOf, song))
+    graph.add((hit_song, RDFS.subClassOf, charted_song))
+    graph.add((hit_artist, RDFS.subClassOf, artist))
+    graph.add((trending_artist, RDFS.subClassOf, artist))
+
+    graph.add((chart_entry, RDFS.subClassOf, PROV.Entity))
+    graph.add((song, OWL.disjointWith, chart_entry))
+
+    performer = PRED.performer
+    main_artist = PRED.mainArtist
+    featured_artist = PRED.featuredArtist
+    performed = PRED.performed
+    entry_song = PRED.entrySong
+    in_chart = PRED.inChart
+    has_chart_entry = PRED.hasChartEntry
+    appears_in_chart = PRED.appearsInChart
+    has_genre = PRED.hasGenre
+    song_link = PRED.song
+    album_link = PRED.album
+
+    object_props = (
+        (performer, song, artist),
+        (main_artist, song, artist),
+        (featured_artist, song, artist),
+        (performed, artist, song),
+        (entry_song, chart_entry, song),
+        (song_link, chart_entry, song),
+        (has_chart_entry, song, chart_entry),
+        (in_chart, chart_entry, chart),
+        (appears_in_chart, artist, chart),
+        (has_genre, song, genre),
+        (album_link, song, album),
+    )
+    for prop, dom, rng in object_props:
+        graph.add((prop, RDF.type, OWL.ObjectProperty))
+        graph.add((prop, RDFS.domain, dom))
+        graph.add((prop, RDFS.range, rng))
+
+    graph.add((main_artist, RDFS.subPropertyOf, performer))
+    graph.add((featured_artist, RDFS.subPropertyOf, performer))
+    graph.add((performer, OWL.inverseOf, performed))
+    graph.add((entry_song, OWL.equivalentProperty, song_link))
+    graph.add((has_chart_entry, OWL.inverseOf, song_link))
+
+    datatype_props = (
+        (PRED.name, song, XSD.string),
+        (PRED.name, artist, XSD.string),
+        (PRED.rank, chart_entry, XSD.integer),
+        (PRED.weeks, chart_entry, XSD.integer),
+        (PRED.date, chart_entry, XSD.date),
+        (PRED.popularity, song, XSD.decimal),
+        (PRED.energy, song, XSD.decimal),
+        (PRED.danceability, song, XSD.decimal),
+        (PRED.tempo, song, XSD.decimal),
+        (PRED.valence, song, XSD.decimal),
+        (PRED.loudness, song, XSD.decimal),
+        (PRED.speechiness, song, XSD.decimal),
+        (PRED.acousticness, song, XSD.decimal),
+        (PRED.instrumentalness, song, XSD.decimal),
+        (PRED.liveness, song, XSD.decimal),
+        (PRED.duration_ms, song, XSD.integer),
+        (PRED.explicit, song, XSD.boolean),
+        (PRED.albumName, song, XSD.string),
+        (RDFS.label, genre, XSD.string),
+        (RDFS.label, chart, XSD.string),
+    )
+    for prop, dom, rng in datatype_props:
+        graph.add((prop, RDF.type, OWL.DatatypeProperty))
+        graph.add((prop, RDFS.domain, dom))
+        graph.add((prop, RDFS.range, rng))
+
+
+def as_decimal_literal(value):
+    try:
+        return Literal(Decimal(str(value)), datatype=XSD.decimal)
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
+def as_int_literal(value):
+    try:
+        return Literal(int(float(value)), datatype=XSD.integer)
+    except (ValueError, TypeError):
+        return None
+
+
+def as_bool_literal(value):
+    if isinstance(value, bool):
+        return Literal(value, datatype=XSD.boolean)
+
+    value_str = str(value).strip().lower()
+    true_set = {"true", "1", "yes", "y", "t"}
+    false_set = {"false", "0", "no", "n", "f"}
+    if value_str in true_set:
+        return Literal(True, datatype=XSD.boolean)
+    if value_str in false_set:
+        return Literal(False, datatype=XSD.boolean)
+    return None
+
+
+def as_date_literal(value):
+    value_str = str(value).strip()
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", value_str):
+        return Literal(value_str, datatype=XSD.date)
+    return Literal(value_str)
 
 # ids dos uris é uma hash pra serem todos diferentes, lá em baixo chamo isto tipo 
 # make_id(song_name + artist_name) por exemplo, e assim para as musicas com o mesmo nome os uris vão ser diferentes
@@ -46,6 +187,13 @@ def clean_artist_token(token):
     token = re.sub(r'[\s\.,;:!\-_]+$', '', token)
     token = re.sub(r'\s{2,}', ' ', token)
     return token.strip()
+
+
+def split_genres(raw_genre):
+    if pd.isna(raw_genre):
+        return []
+    parts = [p.strip() for p in str(raw_genre).split(',')]
+    return [p for p in parts if p]
 
 
 def _split_feature_segments(raw_artist_str):
@@ -370,6 +518,17 @@ def find_match(bill_song_norm, bill_artists_norm):
     return best_fallback
 
 
+PROV = Namespace("http://www.w3.org/ns/prov#")
+g.bind("prov", PROV)
+
+add_ontology_schema(g)
+
+BILLBOARD_HOT_100 = URIRef(BASE["chart/billboard_hot_100"])
+g.add((BILLBOARD_HOT_100, RDF.type, TYPE.Chart))
+g.add((BILLBOARD_HOT_100, RDFS.label, Literal("Billboard Hot 100", datatype=XSD.string)))
+TRENDING_SINCE = "2024-01-01"
+
+
 PROTECTED_BANDS, SUPPRESSED_FRAGMENTS = detect_protected_band_names(
     billboard,
     min_shared_songs=2,
@@ -419,6 +578,8 @@ for i, row in billboard.iterrows():
     g.add((song_uri, PRED.name, Literal(raw_song)))
     g.add((song_uri, RDF.type, TYPE.Song))
 
+    song_artist_uris = []
+
     # artistas são artistas, e eu guardo o nome raw pra meter no name do artista, e o normalized só pra criar o id do uri
     if main_raw:
         main_uri = URIRef(BASE["artist/" + make_id(main_norm)])
@@ -427,6 +588,9 @@ for i, row in billboard.iterrows():
         g.add((main_uri, RDF.type, TYPE.Artist))
         # artista principal da música 
         g.add((song_uri, PRED.mainArtist, main_uri))
+        g.add((song_uri, PRED.performer, main_uri))
+        g.add((main_uri, PRED.performed, song_uri))
+        song_artist_uris.append(main_uri)
 
     for f_raw in features_raw:
         f_norm = normalize_text(f_raw)
@@ -436,15 +600,45 @@ for i, row in billboard.iterrows():
         g.add((feat_uri, RDF.type, TYPE.Artist))
         # artistas featuring da musica
         g.add((song_uri, PRED.featuredArtist, feat_uri))
+        g.add((song_uri, PRED.performer, feat_uri))
+        g.add((feat_uri, PRED.performed, song_uri))
+        song_artist_uris.append(feat_uri)
 
     # a entry é a entrada da música no chart, e tem como atributos o rank, as semanas, e a data
     # é a cena q expliquei lá em cima do all i want for christmas is you, que tem tipo 170 entradas diferentes
     g.add((entry_uri, PRED.song, song_uri))
+    g.add((entry_uri, PRED.entrySong, song_uri))
+    g.add((song_uri, PRED.hasChartEntry, entry_uri))
+    g.add((song_uri, RDF.type, TYPE.ChartedSong))
+    g.add((entry_uri, PRED.inChart, BILLBOARD_HOT_100))
     g.add((entry_uri, RDF.type, TYPE.ChartEntry))
 
-    g.add((entry_uri, PRED.rank, Literal(int(row["Rank"]))))
-    g.add((entry_uri, PRED.weeks, Literal(int(row["Weeks in Charts"]))))
-    g.add((entry_uri, PRED.date, Literal(str(row["Date"]))))
+    for artist_uri in song_artist_uris:
+        g.add((artist_uri, PRED.appearsInChart, BILLBOARD_HOT_100))
+
+    rank_literal = as_int_literal(row["Rank"])
+    weeks_literal = as_int_literal(row["Weeks in Charts"])
+    if rank_literal is not None:
+        g.add((entry_uri, PRED.rank, rank_literal))
+    if weeks_literal is not None:
+        g.add((entry_uri, PRED.weeks, weeks_literal))
+    g.add((entry_uri, PRED.date, as_date_literal(row["Date"])))
+
+    rank_value = None
+    try:
+        rank_value = int(float(row["Rank"]))
+    except (TypeError, ValueError):
+        pass
+
+    if rank_value is not None and rank_value <= 10:
+        g.add((song_uri, RDF.type, TYPE.HitSong))
+        for artist_uri in song_artist_uris:
+            g.add((artist_uri, RDF.type, TYPE.HitArtist))
+
+        row_date = str(row["Date"]).strip()
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", row_date) and row_date >= TRENDING_SINCE:
+            for artist_uri in song_artist_uris:
+                g.add((artist_uri, RDF.type, TYPE.TrendingArtist))
 
     # fazer a match pra meter os atributos da música do outro dataset
     match = find_match(song_norm, all_artists_norm)
@@ -452,22 +646,51 @@ for i, row in billboard.iterrows():
     if match:
         srow = match["row"]
 
-        g.add((song_uri, PRED.popularity, Literal(float(srow["popularity"]))))
-        g.add((song_uri, PRED.energy, Literal(float(srow["energy"]))))
-        g.add((song_uri, PRED.danceability, Literal(float(srow["danceability"]))))
-        g.add((song_uri, PRED.tempo, Literal(float(srow["tempo"]))))
-        g.add((song_uri, PRED.valence, Literal(float(srow["valence"]))))
-        g.add((song_uri, PRED.loudness, Literal(float(srow["loudness"]))))     
-        g.add((song_uri, PRED.speechiness, Literal(float(srow["speechiness"]))))
-        g.add((song_uri, PRED.acousticness, Literal(float(srow["acousticness"]))))
-        g.add((song_uri, PRED.instrumentalness, Literal(float(srow["instrumentalness"]))))
-        g.add((song_uri, PRED.liveness, Literal(float(srow["liveness"]))))
+        decimal_fields = [
+            (PRED.popularity, srow["popularity"]),
+            (PRED.energy, srow["energy"]),
+            (PRED.danceability, srow["danceability"]),
+            (PRED.tempo, srow["tempo"]),
+            (PRED.valence, srow["valence"]),
+            (PRED.loudness, srow["loudness"]),
+            (PRED.speechiness, srow["speechiness"]),
+            (PRED.acousticness, srow["acousticness"]),
+            (PRED.instrumentalness, srow["instrumentalness"]),
+            (PRED.liveness, srow["liveness"]),
+        ]
+        for predicate, value in decimal_fields:
+            decimal_literal = as_decimal_literal(value)
+            if decimal_literal is not None:
+                g.add((song_uri, predicate, decimal_literal))
 
-        g.add((song_uri, PRED.duration_ms, Literal(int(srow["duration_ms"]))))
-        g.add((song_uri, PRED.explicit, Literal(bool(srow["explicit"]))))
+        duration_literal = as_int_literal(srow["duration_ms"])
+        if duration_literal is not None:
+            g.add((song_uri, PRED.duration_ms, duration_literal))
 
-        g.add((song_uri, PRED.albumName, Literal(str(srow["album_name"]))))
-        g.add((song_uri, PRED.genre, Literal(str(srow["track_genre"]))))
+        explicit_literal = as_bool_literal(srow["explicit"])
+        if explicit_literal is not None:
+            g.add((song_uri, PRED.explicit, explicit_literal))
+
+        album_name = str(srow["album_name"]).strip()
+        if album_name:
+            album_uri = URIRef(BASE["album/" + make_id(normalize_text(album_name) + "|" + str(main_norm))])
+            g.add((album_uri, RDF.type, TYPE.Album))
+            g.add((album_uri, PRED.name, Literal(album_name, datatype=XSD.string)))
+            g.add((song_uri, PRED.album, album_uri))
+            g.add((song_uri, PRED.albumName, Literal(album_name, datatype=XSD.string)))
+
+        genres = split_genres(srow["track_genre"])
+        if genres:
+            # Keep legacy genre literal while adding normalized Genre resources.
+            g.add((song_uri, PRED.genre, Literal(", ".join(genres), datatype=XSD.string)))
+            for genre_name in genres:
+                genre_norm = normalize_text(genre_name)
+                if not genre_norm:
+                    continue
+                genre_uri = URIRef(BASE["genre/" + make_id(genre_norm)])
+                g.add((genre_uri, RDF.type, TYPE.Genre))
+                g.add((genre_uri, RDFS.label, Literal(genre_name, datatype=XSD.string)))
+                g.add((song_uri, PRED.hasGenre, genre_uri))
 
     # guys isto é só pra ver isto a funcionar mas se quiserem tirar metam comentario, 
     # é só pra ver o progresso porque isto demora um bocado a correr, e assim dá pra ver que tá a funcionar e mais ou menos quanto tempo falta

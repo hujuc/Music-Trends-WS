@@ -82,4 +82,64 @@
   </div>
 
 </div>
+
+<div class="two-col">
+
+  <div class="section">
+    <div class="card">
+      <h2>Most Common Semantic Genres</h2>
+      {% if semantic_genres %}
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Genre</th>
+              <th>Songs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for genre in semantic_genres %}
+            <tr>
+              <td class="text-muted">{{ forloop.counter }}</td>
+              <td>{{ genre.label }}</td>
+              <td>{{ genre.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted text-sm">No semantic genre data available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <h2>Chart Distribution</h2>
+      {% if chart_distribution %}
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Chart</th>
+              <th>Entries</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for chart in chart_distribution %}
+            <tr>
+              <td class="text-muted">{{ forloop.counter }}</td>
+              <td>{{ chart.label }}</td>
+              <td>{{ chart.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted text-sm">No chart distribution data available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
 {% endblock %}

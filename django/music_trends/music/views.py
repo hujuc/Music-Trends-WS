@@ -63,6 +63,8 @@ def home(request):
         'stats': {'songs': '—', 'artists': '—', 'chart_entries': '—'},
         'top_artists': [],
         'top_songs': [],
+        'semantic_genres': [],
+        'chart_distribution': [],
     }
 
     try:
@@ -97,20 +99,62 @@ def home(request):
         ]
 
         r = run_select("""
-            SELECT ?song ?songName ?popularity
+            SELECT ?song ?songName (MIN(?rank) AS ?bestRank)
             WHERE {
+              ?entry a type:ChartEntry ;
+                     pred:song ?song ;
+                     pred:rank ?rank .
               ?song a type:Song ;
-                    pred:name ?songName ;
-                    pred:popularity ?popularity .
+                    pred:name ?songName .
             }
-            ORDER BY DESC(?popularity)
+            GROUP BY ?song ?songName
+            ORDER BY ASC(?bestRank) ?songName
             LIMIT 10
         """)
         ctx['top_songs'] = [
             {
                 'uri': _val(row, 'song'),
                 'name': _val(row, 'songName'),
-                'popularity': _safe_float(_val(row, 'popularity')),
+                'best_rank': _val(row, 'bestRank'),
+            }
+            for row in r
+        ]
+
+        r = run_select("""
+            SELECT ?genre ?genreLabel (COUNT(DISTINCT ?song) AS ?numSongs)
+            WHERE {
+              ?song a type:Song ;
+                    pred:hasGenre ?genre .
+              ?genre rdfs:label ?genreLabel .
+            }
+            GROUP BY ?genre ?genreLabel
+            ORDER BY DESC(?numSongs)
+            LIMIT 10
+        """)
+        ctx['semantic_genres'] = [
+            {
+                'uri': _val(row, 'genre'),
+                'label': _val(row, 'genreLabel'),
+                'count': _val(row, 'numSongs'),
+            }
+            for row in r
+        ]
+
+        r = run_select("""
+            SELECT ?chart ?chartLabel (COUNT(?entry) AS ?numEntries)
+            WHERE {
+              ?entry a type:ChartEntry ;
+                     pred:inChart ?chart .
+              ?chart rdfs:label ?chartLabel .
+            }
+            GROUP BY ?chart ?chartLabel
+            ORDER BY DESC(?numEntries)
+        """)
+        ctx['chart_distribution'] = [
+            {
+                'uri': _val(row, 'chart'),
+                'label': _val(row, 'chartLabel'),
+                'count': _val(row, 'numEntries'),
             }
             for row in r
         ]
@@ -302,7 +346,8 @@ def song_detail(request):
         bindings = run_select(f"""
             SELECT ?songName ?mainArtist ?mainArtistName
                    ?featuredArtist ?featuredArtistName
-                   ?genre ?popularity ?energy ?danceability ?tempo ?valence
+                   ?genre ?genreResource ?genreLabel
+                   ?popularity ?energy ?danceability ?tempo ?valence
                    ?loudness ?speechiness ?acousticness ?instrumentalness
                    ?liveness ?duration ?explicit ?albumName
             WHERE {{
@@ -312,6 +357,10 @@ def song_detail(request):
               ?mainArtist pred:name ?mainArtistName .
               OPTIONAL {{ ?song pred:featuredArtist ?featuredArtist .
                           ?featuredArtist pred:name ?featuredArtistName . }}
+              OPTIONAL {{
+                    ?song pred:hasGenre ?genreResource .
+                    ?genreResource <http://www.w3.org/2000/01/rdf-schema#label> ?genreLabel .
+              }}
               OPTIONAL {{ ?song pred:genre ?genre . }}
               OPTIONAL {{ ?song pred:popularity ?popularity . }}
               OPTIONAL {{ ?song pred:energy ?energy . }}
@@ -334,12 +383,29 @@ def song_detail(request):
 
         row0 = bindings[0]
 
-        # Collect multi-value fields
+        # Prefer semantic genres (hasGenre + rdfs:label), fallback to legacy pred:genre literals.
         genres = []
+        seen_semantic = set()
         for r in bindings:
-            for genre in _split_genres(_val(r, 'genre', None)):
-                if genre not in genres:
+            label = _val(r, 'genreLabel', None)
+            if not label or label == '—':
+                continue
+            key = label.strip().lower()
+            if key in seen_semantic:
+                continue
+            seen_semantic.add(key)
+            genres.append(label.strip())
+
+        if not genres:
+            seen_legacy = set()
+            for r in bindings:
+                for genre in _split_genres(_val(r, 'genre', None)):
+                    key = genre.strip().lower()
+                    if key in seen_legacy:
+                        continue
+                    seen_legacy.add(key)
                     genres.append(genre)
+
         seen_feat = set()
         featured_artists = []
         for r in bindings:
