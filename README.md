@@ -1,67 +1,98 @@
 # Music Trends WS
 
-Django web application for exploring music trends using RDF data in a GraphDB triplestore.
+Django web application for exploring music trends using RDF data in a GraphDB
+triplestore, with an OWL ontology and SPIN inference rules.
 
 ## Requirements
 
 - Python 3.10+
-- GraphDB (Desktop or Server)
+- GraphDB (Desktop or Server) running and reachable at `http://localhost:7200`
 - Git
 
-## Relevant Structure
+## Project Structure
 
-- `django/music_trends/`: Django project
-- `normalizing_data/`: data-to-RDF transformation script
-- `normalizing_data/music.ttl`: RDF file to import into GraphDB
+- `django/music_trends/` — Django project (the web app)
+- `normalizing_data/` — data → RDF pipeline, ontology, SPIN rules and GraphDB loader
+  - `create_rdf.py` — builds `music.ttl` (facts + ontology schema) from the CSV datasets
+  - `ontology.ttl` — ontology-only layer (RDFS/OWL)
+  - `shapes.ttl` — SHACL validation shapes
+  - `spin_rules.py` / `spin_rules.ttl` — SPIN inference rules (module + RDF export)
+  - `load_ttl_to_graphdb.py` — creates the repo, loads the RDF, applies the SPIN rules
+- `requirements.txt` — single dependency file
+- `setup.sh` — single entry point: install → build data → run app
 
-## 1) Python Environment Setup
+## Quick Start
 
-From the repository root:
+1. Start GraphDB — it must be reachable at `http://localhost:7200`.
+2. From the repository root:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r django/music_trends/requirements.txt
+./setup.sh
 ```
 
-If you want to regenerate the RDF with the script in `normalizing_data/create_rdf.py`, also install:
+That one command:
+
+- creates a `venv` and installs `requirements.txt`;
+- generates the RDF (`normalizing_data/music.ttl`) from the CSV datasets;
+- creates the `music` repository in GraphDB and loads the facts, ontology and SHACL shapes;
+- applies the SPIN inference rules (materializes the classifications and derived relations);
+- runs the Django development server.
+
+Then open:
+
+- Home: http://127.0.0.1:8000/
+- Songs: http://127.0.0.1:8000/songs/
+
+### Partial runs
 
 ```bash
-pip install pandas rdflib rapidfuzz
+./setup.sh build   # (re)generate RDF + load into GraphDB + apply SPIN rules
+./setup.sh run     # migrate + run the Django server (data already loaded)
 ```
 
-## 2) Prepare GraphDB
-
-1. Open GraphDB.
-2. Create a repository named `music`.
-3. Import `normalizing_data/music.ttl` into that repository.
-
-Expected default endpoint:
-
-- `http://localhost:7200/repositories/music`
-
-## 3) (Optional) Regenerate RDF
-
-If you need to recreate `music.ttl` from the CSV files:
+## Manual Steps (alternative to setup.sh)
 
 ```bash
+# 1. environment
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 2. (re)generate the RDF from the CSVs
 cd normalizing_data
 python create_rdf.py
+
+# 3. load into GraphDB + apply SPIN rules (GraphDB must be running)
+python load_ttl_to_graphdb.py
+
+# 4. run the app
+cd ../django/music_trends
+python manage.py migrate
+python manage.py runserver
 ```
 
-At the end, the script writes/updates `normalizing_data/music.ttl`.
+Default endpoint: `http://localhost:7200/repositories/music`.
+
+## App Environment Variables (optional)
+
+The app works without extra variables if you use the default endpoint. Optionally:
+
+- `GRAPHDB_ENDPOINT` (default: `http://localhost:7200/repositories/music`)
+- `GRAPHDB_TIMEOUT` in seconds (default: `10`)
+
+The loader also reads `GRAPHDB_URL` (default `http://localhost:7200`) and
+`REPOSITORY` (default `music`).
+
+## Semantic Layer
 
 ### Ontology and Validation Artifacts
-
-After running the generator, these RDF artifacts are available:
 
 - `normalizing_data/music.ttl`: generated facts (instance data) + ontology declarations used by the app. Classifications and derived relations are **not** baked in here — they are produced by the SPIN rules.
 - `normalizing_data/ontology.ttl`: ontology-only layer (classes, properties, domain/range, inverse/sub/equivalent/symmetric links).
 - `normalizing_data/shapes.ttl`: minimal SHACL validation shapes.
 - `normalizing_data/spin_rules.py`: independent module with the SPIN inference rules (see below).
 - `normalizing_data/spin_rules.ttl`: the same rules exported as SPIN RDF (`sp:`/`spin:`), loadable in GraphDB/Protégé.
-- `docs/semantic_demo_queries.rq`: SPARQL queries for semantic demo (genres, charts, albums, inference checks).
+- `docs/semantic_demo_queries.rq`: SPARQL queries for the semantic demo (genres, charts, albums, inference checks).
 
 Quick validation commands:
 
@@ -70,11 +101,6 @@ cd normalizing_data
 python -c "from rdflib import Graph; g=Graph(); g.parse('music.ttl', format='turtle'); print(len(g))"
 python -c "from rdflib import Graph; Graph().parse('ontology.ttl', format='turtle'); Graph().parse('shapes.ttl', format='turtle'); print('ok')"
 ```
-
-Compatibility note:
-
-- Existing predicates used by the Django app were preserved.
-- New semantic predicates (`pred:hasGenre`, `pred:inChart`, `pred:album`, `pred:performer`) were added incrementally.
 
 ### Inference Rules (SPIN)
 
@@ -105,12 +131,7 @@ python spin_rules.py --apply --dry-run        # prints the SPARQL updates
 python spin_rules.py --apply                  # materializes inferences on GraphDB
 ```
 
-Recommended GraphDB workflow:
-
-1. Import `music.ttl` (base facts) into the `music` repository.
-2. Import `ontology.ttl` (schema) — enables RDFS/OWL inferences (e.g. `pred:performer`
-   from `pred:mainArtist` via `rdfs:subPropertyOf`).
-3. Run `python spin_rules.py --apply` to materialize the SPIN classifications.
+(`load_ttl_to_graphdb.py` already runs `--apply` after loading the data.)
 
 Quick SPARQL checks in GraphDB (after applying the rules):
 
@@ -123,53 +144,24 @@ SELECT (COUNT(*) AS ?c) WHERE { ?s pred:appearsInChart ?o . }
 SELECT (COUNT(*) AS ?c) WHERE { ?s pred:collaboratedWith ?o . }
 ```
 
-## 4) Configure App Environment Variables
-
-The app already works without extra variables if you use the default endpoint above.
-
-Optionally, you can define:
-
-- `GRAPHDB_ENDPOINT` (default: `http://localhost:7200/repositories/music`)
-- `GRAPHDB_TIMEOUT` in seconds (default: `10`)
-
-Example:
-
-```bash
-export GRAPHDB_ENDPOINT="http://localhost:7200/repositories/music"
-export GRAPHDB_TIMEOUT="10"
-```
-
-## 5) Run the Django Application
-
-```bash
-cd django/music_trends
-python manage.py migrate
-python manage.py runserver
-```
-
-Open in browser:
-
-- Home: `http://127.0.0.1:8000/`
-- Songs: `http://127.0.0.1:8000/songs/`
-
-## 6) Quick Verification
+## Verification
 
 With the app running:
 
-1. Go to `/songs/`.
-2. Confirm the song list appears.
-3. Test the artist filter.
+1. Go to `/songs/` and confirm the song list appears.
+2. Test the artist filter.
 
-If GraphDB is offline or the endpoint is wrong, the page shows an error message instead of crashing.
+If GraphDB is offline or the endpoint is wrong, the page shows an error message
+instead of crashing.
 
 ## Troubleshooting
 
 - GraphDB connection error:
-	- ensure GraphDB is running;
-	- ensure the `music` repository exists;
-	- ensure `GRAPHDB_ENDPOINT` is correct.
+  - ensure GraphDB is running;
+  - ensure the `music` repository exists (the loader creates it automatically);
+  - ensure `GRAPHDB_ENDPOINT` / `GRAPHDB_URL` are correct.
 - `ModuleNotFoundError` when running scripts:
-	- activate the virtual environment;
-	- reinstall dependencies with `pip install -r django/music_trends/requirements.txt`.
+  - activate the virtual environment;
+  - reinstall dependencies with `pip install -r requirements.txt`.
 - No data appears in `/songs/`:
-	- ensure `normalizing_data/music.ttl` was imported into the correct repository.
+  - ensure `load_ttl_to_graphdb.py` ran successfully against the correct repository.
