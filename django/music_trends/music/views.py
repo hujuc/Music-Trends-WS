@@ -99,23 +99,32 @@ def home(request):
         ]
 
         r = run_select("""
-            SELECT ?song ?songName (MIN(?rank) AS ?bestRank)
-            WHERE {
-              ?entry a type:ChartEntry ;
-                     pred:song ?song ;
-                     pred:rank ?rank .
-              ?song a type:Song ;
-                    pred:name ?songName .
-            }
-            GROUP BY ?song ?songName
-            ORDER BY ASC(?bestRank) ?songName
-            LIMIT 10
+                SELECT ?song ?songName ?bestRank (COUNT(?bestEntry) AS ?weeksAtBestRank)
+                WHERE {
+                    {
+                        SELECT ?song ?songName (MIN(?rank) AS ?bestRank)
+                        WHERE {
+                            ?entry a type:ChartEntry ;
+                                            pred:song ?song ;
+                                            pred:rank ?rank .
+                            ?song pred:name ?songName .
+                        }
+                        GROUP BY ?song ?songName
+                    }
+                    ?bestEntry a type:ChartEntry ;
+                                            pred:song ?song ;
+                                            pred:rank ?bestRank .
+                }
+                GROUP BY ?song ?songName ?bestRank
+                ORDER BY DESC(?weeksAtBestRank) ASC(?bestRank)
+                LIMIT 10
         """)
         ctx['top_songs'] = [
             {
                 'uri': _val(row, 'song'),
                 'name': _val(row, 'songName'),
-                'best_rank': _val(row, 'bestRank'),
+                'best_rank': _safe_int(_val(row, 'bestRank')),
+                'weeks_at_best_rank': _safe_int(_val(row, 'weeksAtBestRank')),
             }
             for row in r
         ]
@@ -171,6 +180,7 @@ def songs(request):
     song_query = request.GET.get('song', '').strip()
     artist_query = request.GET.get('artist', '').strip()
     genre_query = request.GET.get('genre', '').strip()
+    with_audio_features = request.GET.get('with_audio_features', '').strip() == 'on'
     popularity_min = request.GET.get('popularity_min', '').strip()
     popularity_max = request.GET.get('popularity_max', '').strip()
     top_metric = request.GET.get('top_metric', '').strip()
@@ -198,6 +208,12 @@ def songs(request):
     if genre_query:
         filters.append(
             f"FILTER(BOUND(?genre) && CONTAINS(LCASE(STR(?genre)), LCASE(STR({sparql_escape_literal(genre_query)}))))"
+        )
+
+    if with_audio_features:
+        filters.append(
+            "FILTER(BOUND(?energy) || BOUND(?danceability) || BOUND(?valence) || "
+            "BOUND(?acousticness) || BOUND(?speechiness) || BOUND(?instrumentalness) || BOUND(?liveness))"
         )
 
     if popularity_min:
@@ -230,6 +246,13 @@ def songs(request):
         ?mainArtist pred:name ?artistname .
         OPTIONAL {{ ?song pred:genre ?genre . }}
         OPTIONAL {{ ?song pred:popularity ?popularity . }}
+        OPTIONAL {{ ?song pred:energy ?energy . }}
+        OPTIONAL {{ ?song pred:danceability ?danceability . }}
+        OPTIONAL {{ ?song pred:valence ?valence . }}
+        OPTIONAL {{ ?song pred:acousticness ?acousticness . }}
+        OPTIONAL {{ ?song pred:speechiness ?speechiness . }}
+        OPTIONAL {{ ?song pred:instrumentalness ?instrumentalness . }}
+        OPTIONAL {{ ?song pred:liveness ?liveness . }}
         {filters_block}
     }}
     """
@@ -267,6 +290,7 @@ def songs(request):
             'songs': [], 'error_message': str(exc),
             'song_query': song_query,
             'artist_query': artist_query, 'genre_query': genre_query,
+            'with_audio_features': with_audio_features,
             'popularity_min': popularity_min, 'popularity_max': popularity_max,
             'top_metric': top_metric,
             'page': 1,
@@ -323,6 +347,7 @@ def songs(request):
         'songs': results,
         'song_query': song_query,
         'artist_query': artist_query, 'genre_query': genre_query,
+        'with_audio_features': with_audio_features,
         'popularity_min': popularity_min, 'popularity_max': popularity_max,
         'top_metric': top_metric,
         'page': page,
@@ -1540,18 +1565,30 @@ def insights(request):
     })
 
     ctx['insights']['hidden_gems'] = safe_query("""
-        SELECT ?song ?songName ?mainArtist ?artistName ?energy ?danceability ?popularity
-        WHERE {
-          ?song a type:Song ;
-                pred:name ?songName ;
-                pred:mainArtist ?mainArtist ;
-                pred:energy ?energy ;
-                pred:danceability ?danceability ;
-                pred:popularity ?popularity .
-          ?mainArtist pred:name ?artistName .
-          FILTER(?energy >= 0.75 && ?danceability >= 0.75 && ?popularity < 40)
-        }
-        ORDER BY DESC(?energy) DESC(?danceability)
+                SELECT ?song ?songName ?mainArtist ?artistName ?energy ?danceability ?chartCount
+                WHERE {
+                    {
+                        SELECT ?song (COUNT(DISTINCT ?entry) AS ?chartCount)
+                        WHERE {
+                            ?song a type:Song ;
+                                        pred:energy ?energy ;
+                                        pred:danceability ?danceability .
+                            FILTER(?energy >= 0.75 && ?danceability >= 0.75)
+                            OPTIONAL {
+                                ?entry a type:ChartEntry ;
+                                             pred:song ?song .
+                            }
+                        }
+                        GROUP BY ?song
+                        HAVING(COUNT(DISTINCT ?entry) <= 2)
+                    }
+                    ?song pred:name ?songName ;
+                                pred:mainArtist ?mainArtist ;
+                                pred:energy ?energy ;
+                                pred:danceability ?danceability .
+                    ?mainArtist pred:name ?artistName .
+                }
+                ORDER BY ASC(?chartCount) DESC(?energy) DESC(?danceability)
         LIMIT 30
     """, lambda r: {
         'uri': _val(r, 'song'),
@@ -1560,25 +1597,46 @@ def insights(request):
         'artist': _clean_artist_label(_val(r, 'artistName')),
         'energy': _safe_float(_val(r, 'energy')),
         'danceability': _safe_float(_val(r, 'danceability')),
-        'popularity': _safe_float(_val(r, 'popularity')),
+                'chart_count': _safe_int(_val(r, 'chartCount')),
     })
 
-    ctx['insights']['versatile'] = safe_query("""
-        SELECT ?artist ?artistName (COUNT(DISTINCT ?genre) AS ?genreCount)
-        WHERE {
-          ?song a type:Song ;
-                pred:mainArtist ?artist ;
-                pred:genre ?genre .
-          ?artist pred:name ?artistName .
-        }
-        GROUP BY ?artist ?artistName
-        ORDER BY DESC(?genreCount)
-        LIMIT 20
-    """, lambda r: {
-        'uri': _val(r, 'artist'),
-        'name': _clean_artist_label(_val(r, 'artistName')),
-        'genre_count': _val(r, 'genreCount'),
-    })
+    try:
+        versatile_raw = run_select("""
+            SELECT ?artist ?artistName ?genre
+            WHERE {
+              ?artist a type:Artist ;
+                      pred:name ?artistName .
+              ?song a type:Song ;
+                    pred:mainArtist ?artist .
+              OPTIONAL {
+                ?song pred:genre ?genre .
+              }
+            }
+            ORDER BY ?artist
+        """)
+    except SparqlClientError:
+        versatile_raw = []
+    
+    # Post-process to count unique genres per artist (with split handling)
+    versatile_by_artist = {}
+    for r in versatile_raw:
+        artist_uri = _val(r, 'artist')
+        if artist_uri not in versatile_by_artist:
+            versatile_by_artist[artist_uri] = {
+                'uri': artist_uri,
+                'name': _clean_artist_label(_val(r, 'artistName')),
+                'genres': set(),
+            }
+        genre_str = _val(r, 'genre', None)
+        if genre_str:
+            for genre in _split_genres(genre_str):
+                versatile_by_artist[artist_uri]['genres'].add(genre)
+    
+    ctx['insights']['versatile'] = sorted(
+        [{'uri': v['uri'], 'name': v['name'], 'genre_count': len(v['genres'])} for v in versatile_by_artist.values()],
+        key=lambda x: x['genre_count'],
+        reverse=True
+    )[:20]
 
     ctx['insights']['resilient'] = safe_query("""
         SELECT ?song ?songName (MAX(?weeks) AS ?weeksPeak) (MIN(?rank) AS ?bestRank)

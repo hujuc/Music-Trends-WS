@@ -55,7 +55,7 @@
 
   <div class="section">
     <div class="card">
-      <h2>Top Songs by Best Chart Rank</h2>
+      <h2>Top Songs by Time at Best Rank</h2>
       {% if top_songs %}
         <table>
           <thead>
@@ -63,6 +63,7 @@
               <th>#</th>
               <th>Song</th>
               <th>Best Rank</th>
+              <th>Weeks at Best Rank</th>
             </tr>
           </thead>
           <tbody>
@@ -71,6 +72,7 @@
               <td class="text-muted">{{ forloop.counter }}</td>
               <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
               <td>#{{ song.best_rank }}</td>
+              <td>{{ song.weeks_at_best_rank }}</td>
             </tr>
             {% endfor %}
           </tbody>

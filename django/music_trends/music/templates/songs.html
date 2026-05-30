@@ -23,7 +23,13 @@
                value="{{ genre_query|default:'' }}" placeholder="e.g. pop" />
       </div>
     </div>
-    <button type="submit">Search</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;margin-top:1rem;">
+      <label style="display:flex;align-items:center;gap:0.5rem;font-weight:600;cursor:pointer;margin:0;">
+        <input type="checkbox" name="with_audio_features" {% if with_audio_features %}checked{% endif %} />
+        Only songs with audio features
+      </label>
+      <button type="submit">Search</button>
+    </div>
   </form>
 </div>
 
@@ -66,10 +72,10 @@
     <div class="text-muted text-sm">Page {{ page }}</div>
     <div style="display:flex;gap:0.6rem;">
       {% if has_previous %}
-        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&popularity_min={{ popularity_min|urlencode }}&popularity_max={{ popularity_max|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ previous_page }}">Previous</a>
+        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&with_audio_features={% if with_audio_features %}on{% endif %}&popularity_min={{ popularity_min|urlencode }}&popularity_max={{ popularity_max|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ previous_page }}">Previous</a>
       {% endif %}
       {% if has_next %}
-        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&popularity_min={{ popularity_min|urlencode }}&popularity_max={{ popularity_max|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ next_page }}">Next</a>
+        <a class="btn" href="?song={{ song_query|urlencode }}&artist={{ artist_query|urlencode }}&genre={{ genre_query|urlencode }}&with_audio_features={% if with_audio_features %}on{% endif %}&popularity_min={{ popularity_min|urlencode }}&popularity_max={{ popularity_max|urlencode }}&top_metric={{ top_metric|urlencode }}&page={{ next_page }}">Next</a>
       {% endif %}
     </div>
   </div>
