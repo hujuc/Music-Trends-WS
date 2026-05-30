@@ -1,0 +1,459 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix pred: <http://music.org/pred/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://music.org/artist/00448a6c89cbb67bc14092850de5e09b> pred:description "American band"@en ;
+    pred:externalGenre "country music" ;
+    pred:image <http://commons.wikimedia.org/wiki/Special:FilePath/LadyAntebellumApr10.jpg> ;
+    pred:inceptionDate "2006-01-01"^^xsd:date ;
+    pred:musicBrainzId "0eedfc95-e79a-4fd9-832a-cd816a0b3fda" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Lady_A_-_Charlotte_12-27-12-39.jpg?width=300> ;
+    pred:website <https://www.ladyamusic.com/> ;
+    owl:sameAs <http://dbpedia.org/resource/Lady_A>,
+        <http://www.wikidata.org/entity/Q389870> .
+
+<http://music.org/artist/009bf9d0474134b5d38d2d8eb05037fb> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Ying_Yang_Twins_in_Berlin_by_foto_di_matti.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Ying_Yang_Twins> .
+
+<http://music.org/artist/00c842e8de836d9b42486fd58b0e5e4b> pred:birthDate "1991-07-09"^^xsd:date ;
+    pred:birthPlace "Garland, Texas" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Mitchel_Musso_2,_Walmart_Soundcheck_2011.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Mitchel_Musso> .
+
+<http://music.org/artist/01bb4f64de3471ed0ea48ad554f2e14d> pred:birthDate "1990-03-08"^^xsd:date ;
+    pred:birthPlace "South Pasadena, California" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Kristinia_debarge.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Kristinia_DeBarge> .
+
+<http://music.org/artist/02b2ebfa4b10536c787fd7c7bd5734f8> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/LadySOV2009.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Lady_Sovereign> .
+
+<http://music.org/artist/02c097820745d4958e10546f2c79de3c> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Justin_Jesso_press_pic.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Justin_Jesso> .
+
+<http://music.org/artist/03f3415b81fc0785d65eb2df2e53bbd9> pred:birthDate "1986-06-28"^^xsd:date ;
+    pred:birthPlace "Albemarle, North Carolina" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/KellieP.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Kellie_Pickler> .
+
+<http://music.org/artist/042b860f96eb07b089d7a23c26abed34> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/New_Radicals_group.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/New_Radicals> .
+
+<http://music.org/artist/052208161e30f470a43e01e062eb9cfe> owl:sameAs <http://dbpedia.org/resource/Majid_Jordan> .
+
+<http://music.org/artist/0571d53c6a7ed444a5d705f0574cfbb2> pred:birthDate "1994-04-08"^^xsd:date ;
+    pred:birthPlace "Bakersfield, California" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Zacari_Extravaganza_2025.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Zacari> .
+
+<http://music.org/artist/05ae79ef8f9b07f02808ee0cd12eae3b> pred:birthDate "1979-06-30"^^xsd:date ;
+    pred:birthPlace "West Chester, Pennsylvania" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/MatisyahuPressShotOfficial.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Matisyahu> .
+
+<http://music.org/artist/05b09d09844f526d6c3e9871bea1c38f> pred:birthDate "1942-11-20"^^xsd:date ;
+    pred:birthPlace "Malden, Massachusetts" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Norman_Greenbaum.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Norman_Greenbaum> .
+
+<http://music.org/artist/05fbd53d6b494ea0100fb700e700d8c7> pred:birthDate "1989-11-14"^^xsd:date ;
+    pred:birthPlace "Fort Wayne, Indiana" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/The_Ready_Set_-_live_2009.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/The_Ready_Set> .
+
+<http://music.org/artist/06e3a592b1cb61b61ad92f9f695a3cf0> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Edison_Lighthouse_(GB,_London_1970)_Aktuil-052-1970.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Edison_Lighthouse> .
+
+<http://music.org/artist/06ec7ad15b76d84e84256ea889c580fa> pred:birthDate "1991-05-19"^^xsd:date ;
+    pred:birthPlace "Loganville, Georgia" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Jordan_Pruitt_after_2008_ToGS_SJ_5.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Jordan_Pruitt> .
+
+<http://music.org/artist/0706036671fd5553d0a0335569668aea> pred:birthDate "1989-03-20"^^xsd:date ;
+    pred:birthPlace "Alberta" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Lindsay_Ell_on_tour.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Lindsay_Ell> .
+
+<http://music.org/artist/077b3a045028cb8c2910e889a4041348> pred:birthDate "1958-08-17"^^xsd:date ;
+    pred:birthPlace "Los Angeles" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Belinda_Carlisle_at_Manchester_Pride_2010.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Belinda_Carlisle> .
+
+<http://music.org/artist/07e9f443628d012fad0395313f6e7c8b> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/AlunaGeorge_in_Scala,_London_(3)_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/AlunaGeorge> .
+
+<http://music.org/artist/084a8a703f960689957131d7a9ef2e57> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Crowded_House.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Crowded_House> .
+
+<http://music.org/artist/090cbcf590207b68a7c2e8ffd114295d> owl:sameAs <http://dbpedia.org/resource/Bethel_Music> .
+
+<http://music.org/artist/091a4a9f3086d57b31dba90b33d5f931> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Black_Pumas_(TPDabkmfCFQ_-_1920x1080_-_1m00s).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Black_Pumas> .
+
+<http://music.org/artist/0988fd6aae03e5b8f73461c68878791a> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/CommodoresPerformingUpClose.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Commodores> .
+
+<http://music.org/artist/09b792e75d96dbcb3d49f5af313e9fa1> pred:description "British rock band"@en ;
+    pred:externalGenre "pop music" ;
+    pred:image <http://commons.wikimedia.org/wiki/Special:FilePath/ColdplayWembley120925%20%28cropped%29.jpg> ;
+    pred:inceptionDate "1999-01-01"^^xsd:date ;
+    pred:musicBrainzId "cc197bad-dc9c-440d-a5b5-d52ba2e14234" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/ColdplayBBC071221_(cropped).jpg?width=300> ;
+    pred:website <https://coldplay.com> ;
+    owl:sameAs <http://dbpedia.org/resource/Coldplay>,
+        <http://www.wikidata.org/entity/Q45188> .
+
+<http://music.org/artist/0a1edc46386bb3e6e087430b5bb651df> pred:birthPlace "North Bergen, New Jersey" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/070Shake...jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/070_Shake> .
+
+<http://music.org/artist/0a77247988383f63f29b9807baa43b0e> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Grouplove_in_Seattle_9-30-11.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Grouplove> .
+
+<http://music.org/artist/0b6007716fd7623b0bff852c2194d7f3> pred:birthDate "1992-09-11"^^xsd:date ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Alessandro_Michele_Cavazza.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Sandro_Cavazza> .
+
+<http://music.org/artist/0b63ef1139fcc0e77773cc371497ebc1> pred:birthDate "1953-02-26"^^xsd:date ;
+    pred:birthPlace "New Haven, Connecticut" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Michael_Bolton_by_Gage_Skidmore_2.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Michael_Bolton> .
+
+<http://music.org/artist/0bc6c2726dbb58c89fa35f334dc12103> pred:birthDate "1995-04-19"^^xsd:date ;
+    pred:birthPlace "Providence, Rhode Island" ;
+    owl:sameAs <http://dbpedia.org/resource/Arizona_Zervas> .
+
+<http://music.org/artist/0c7782811db762ab3c7728794396598a> pred:birthDate "1998-11-23"^^xsd:date ;
+    pred:birthPlace "New York City" ;
+    owl:sameAs <http://dbpedia.org/resource/Just_Sam> .
+
+<http://music.org/artist/0ce3c5290e9b730c021d7cf2f09c1697> pred:birthDate "1980-05-21"^^xsd:date ;
+    pred:birthPlace "West Flanders" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Gotye_(7751177112).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Gotye> .
+
+<http://music.org/artist/0d2969ffced798b709429acd6cc14993> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/The_Civil_Wars.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/The_Civil_Wars> .
+
+<http://music.org/artist/0d2a5febca0dbc960cd2e698e98fff91> pred:birthDate "1983-02-08"^^xsd:date ;
+    pred:birthPlace "Mobile, Alabama" ;
+    owl:sameAs <http://dbpedia.org/resource/Rich_Boy> .
+
+<http://music.org/artist/0d32947eed9b99958c7496eed2b11b44> pred:birthDate "2002-08-26"^^xsd:date ;
+    pred:birthPlace "Queens" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Lil_Tecca_2019.png?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Lil_Tecca> .
+
+<http://music.org/artist/0e08c8dfea52a66e878a35cbc5385216> pred:birthDate "1978-12-19"^^xsd:date ;
+    pred:birthPlace "Cayey, Puerto Rico" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Wisin2.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Wisin> .
+
+<http://music.org/artist/0e2e1e194bf611bf6bf10cc4cb4939e8> pred:birthDate "1989-12-29"^^xsd:date ;
+    pred:birthPlace "Newburgh, New York" ;
+    owl:sameAs <http://dbpedia.org/resource/Pardison_Fontaine> .
+
+<http://music.org/artist/0e6b349cb2fe4d764ac958528c57f150> pred:birthDate "1970-01-16"^^xsd:date ;
+    pred:birthPlace "Beamsville, Ontario" ;
+    owl:sameAs <http://dbpedia.org/resource/Dave_Martone> .
+
+<http://music.org/artist/0e770aa8870e1d586c12c4a8baa993cf> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Charlotte_OC_04_02_2019_-11_(33706801258).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Charlotte_OC> .
+
+<http://music.org/artist/0eda5ac4b042deffc6d76a313b413478> pred:birthDate "1978-02-14"^^xsd:date ;
+    pred:birthPlace "Michigan" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Dwele_2.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Dwele> .
+
+<http://music.org/artist/0f05c5c8ff14bd263618fd6dffa37c22> pred:birthPlace "Tyler, Texas" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Paul_Cauthen_9.10.21.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Paul_Cauthen> .
+
+<http://music.org/artist/0f85496c7d8deb6ca033f58f8145a8c7> pred:birthDate "1991-07-19"^^xsd:date ;
+    pred:birthPlace "Port Harcourt" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Mr_Eazi.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Mr_Eazi> .
+
+<http://music.org/artist/100e19a6586c03886b69d30c09b9206d> pred:birthDate "1985-09-06"^^xsd:date ;
+    pred:birthPlace "Baton Rouge, Louisiana" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Webbie.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Webbie> .
+
+<http://music.org/artist/1092eb114b634557ff9333ac82a62b04> pred:birthDate "1937-10-04"^^xsd:date ;
+    pred:birthPlace "East St. Louis, Illinois" ;
+    owl:sameAs <http://dbpedia.org/resource/Leon_Thomas> .
+
+<http://music.org/artist/10ddf0306cdaf9f0f0ca7e539dabeb73> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Depeche_mode_in_portland_Nov_2023.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Depeche_Mode> .
+
+<http://music.org/artist/1125b529f36da01bb595d00d2eb58e1c> pred:birthDate "1992-10-17"^^xsd:date ;
+    pred:birthPlace "India" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/2025_cover_photo_Hanumankind.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Hanumankind> .
+
+<http://music.org/artist/12c3ca39ef89e35de381b49e10ca0705> pred:birthDate "1997-12-26"^^xsd:date ;
+    pred:birthPlace "Abbeville, Louisiana" ;
+    owl:sameAs <http://dbpedia.org/resource/Koryn_Hawthorne> .
+
+<http://music.org/artist/142978a1531f6d8fbffd91c0ede5e52e> pred:birthDate "1954-12-25"^^xsd:date ;
+    pred:birthPlace "Aberdeen" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Annie_Lennox_March_2023.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Annie_Lennox> .
+
+<http://music.org/artist/145f090e06b7d55b5f65eac180df5c7c> pred:birthDate "1956-02-15"^^xsd:date ;
+    pred:birthPlace "Guantánamo" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Olga_Merediz_2021.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Olga_Merediz> .
+
+<http://music.org/artist/146e3f82992062aa0624f3ca2c9685dc> pred:birthDate "1983-12-20"^^xsd:date ;
+    pred:birthPlace "Maywood, Illinois" ;
+    owl:sameAs <http://dbpedia.org/resource/Todd_Dulaney> .
+
+<http://music.org/artist/14c1872e9f345c14aa58387631e513ab> pred:birthDate "1968-12-18"^^xsd:date ;
+    pred:birthPlace "Madrid" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Goyas_2025_-_Alejandro_Sanz_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Alejandro_Sanz> .
+
+<http://music.org/artist/14eb20ca6087518d0a10df5e332a72a9> pred:birthDate "1944-12-11"^^xsd:date ;
+    pred:birthPlace "Atlanta" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Brenda_Lee_2006.png?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Brenda_Lee> .
+
+<http://music.org/artist/14fae81facf5205752d4ff222c7ab29d> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Whiskey_Myers_.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Whiskey_Myers> .
+
+<http://music.org/artist/15270701fccef2e2b3a1d818eef934b4> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Icona_Pop_-_Way_Out_West_2014_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Icona_Pop> .
+
+<http://music.org/artist/15eafb5f184a858546d39640d259d485> pred:birthDate "2000-10-22"^^xsd:date ;
+    pred:birthPlace "Carson, California" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Baby_Keep_2022_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Baby_Keem> .
+
+<http://music.org/artist/161610b7600fab424707dde00c2ffaa7> pred:birthDate "1980-09-05"^^xsd:date ;
+    pred:birthPlace "Chicago" ;
+    owl:sameAs <http://dbpedia.org/resource/Adam_Calhoun> .
+
+<http://music.org/artist/162755f99ab01bf8fb792402d3860e17> pred:birthDate "1985-05-04"^^xsd:date ;
+    pred:birthPlace "Wisconsin Rapids, Wisconsin" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Jidenna.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Jidenna> .
+
+<http://music.org/artist/1631548863cf09564372b30542fe799f> pred:birthDate "1996-12-23"^^xsd:date ;
+    pred:birthPlace "Saint Thomas Parish, Jamaica" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Skilibeng_performing_in_2024.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Skillibeng> .
+
+<http://music.org/artist/1652a0d42748facbe34fe57f6320fe3d> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/HeyViolet2016.png?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Hey_Violet> .
+
+<http://music.org/artist/166a83287febd69537ac94c52ed4ee0b> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Nine_Inch_Nails_-_20.06.2022_-_O2_Apollo_Manchester.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Nine_Inch_Nails> .
+
+<http://music.org/artist/16748e4abaf945d77520e70ee4bd0c12> pred:birthDate "1965-10-30"^^xsd:date ;
+    pred:birthPlace "London" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Gavin_Rossdale.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Gavin_Rossdale> .
+
+<http://music.org/artist/17acef619faeba8495f7cdcdca431a8f> pred:birthDate "1979-06-07"^^xsd:date ;
+    pred:birthPlace "Marseille" ;
+    owl:sameAs <http://dbpedia.org/resource/Cedric_Gervais> .
+
+<http://music.org/artist/181b8c1fb7e32acd1e7efef27ee320cb> pred:birthDate "1994-01-06"^^xsd:date ;
+    pred:birthPlace "Winnipeg" ;
+    owl:sameAs <http://dbpedia.org/resource/Allan_Kingdom> .
+
+<http://music.org/artist/184d004cd48d192bf59c3aba8c5d3dad> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Jim_Croce_publicity_portrait_ABC_Records_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Jim_Croce> .
+
+<http://music.org/artist/1924bf6c4b753ec1bf9ca4bd6d1b7063> pred:birthDate "2000-10-06"^^xsd:date ;
+    pred:birthPlace "Lafayette, Louisiana" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/LanaWembley030725-16_(cropped_2).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Addison_Rae> .
+
+<http://music.org/artist/192f92c15c400a8211a45fb4a45ca64b> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/The_Veronicas_live_at_Good_Things_Festival_Melbourne_2019.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/The_Veronicas> .
+
+<http://music.org/artist/19c0dac12c7d33df01af21c307f98f57> pred:birthDate "1987-09-24"^^xsd:date ;
+    pred:birthPlace "England" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/SP3153.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Bipolar_Sunshine> .
+
+<http://music.org/artist/1a8d462f6901b1c3b9bf46d17fd22840> pred:birthPlace "Miami" ;
+    owl:sameAs <http://dbpedia.org/resource/Nayer> .
+
+<http://music.org/artist/1ad9fccc830b9a966e78196b2ab6526d> pred:birthDate "1984-05-16"^^xsd:date ;
+    owl:sameAs <http://dbpedia.org/resource/James_Fauntleroy> .
+
+<http://music.org/artist/1afedebbd0e2ec2a5aaa1e50594ad3b0> pred:birthDate "1992-06-19"^^xsd:date ;
+    pred:birthPlace "Fort St. James" ;
+    owl:sameAs <http://dbpedia.org/resource/Dylan_Playfair> .
+
+<http://music.org/artist/1b1010b196abea4c5fd6608e680b52d1> pred:birthDate "1991-05-02"^^xsd:date ;
+    pred:birthPlace "Bayamón, Puerto Rico" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Farruko,_2021_-_interview_with_Tony_Dandrades.jpeg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Farruko> .
+
+<http://music.org/artist/1b1e1ae02b99e5bb18cc5f15383df88e> pred:birthDate "1979-12-31"^^xsd:date ;
+    pred:birthPlace "Soviet Union" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Boombox-gdansk-nnastazja-IMG_6289-5.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Andriy_Khlyvnyuk> .
+
+<http://music.org/artist/1c063d7d433b71a867680ceaa307ace1> pred:birthDate "1995-09-11"^^xsd:date ;
+    pred:birthPlace "Ontario" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Francesco_Yates_2014.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Francesco_Yates> .
+
+<http://music.org/artist/1c5f6964b2e4e5a0ce0d484bb9955d1d> pred:birthDate "1965-09-09"^^xsd:date ;
+    pred:birthPlace "Pittsburgh" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Charles_Esten_2024_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Charles_Esten> .
+
+<http://music.org/artist/1c61eff7db97d545ca3b0ef4dbb38efe> pred:birthDate "1988-07-11"^^xsd:date ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Niiapiano.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Niia> .
+
+<http://music.org/artist/1ca91ee480aa15630863010e7c83a36c> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Chapel_Hart_1_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Chapel_Hart> .
+
+<http://music.org/artist/1d8da5777e2bb9feafdc918740ee0e9e> pred:birthDate "1976-05-08"^^xsd:date ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Martha_Wainwright_2.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Martha_Wainwright> .
+
+<http://music.org/artist/1d923acbff9df1215049a34b41488362> owl:sameAs <http://dbpedia.org/resource/Shop_Boyz> .
+
+<http://music.org/artist/1ddeb5639bc51a68079316f604163a49> pred:birthDate "1997-01-20"^^xsd:date ;
+    pred:birthPlace "California" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Blueface.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Blueface> .
+
+<http://music.org/artist/1e07488b8e5d32c33230320e839160cd> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Finger_Eleven_2014_01.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Finger_Eleven> .
+
+<http://music.org/artist/1e6683c71c34e5fac1494df36f3e7ed4> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Of_Monsters_and_Men_Firenze.jpeg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Of_Monsters_and_Men> .
+
+<http://music.org/artist/1eb6a9b0c866ed7a25c5f3cc05570246> pred:birthDate "1986-01-16"^^xsd:date ;
+    pred:birthPlace "Tyne and Wear" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Nadine_Shah_at_Resident_(53563006232).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Nadine_Shah> .
+
+<http://music.org/artist/1ed8e77c818cb5935b92a4140174ef13> pred:birthDate "1989-05-27"^^xsd:date ;
+    pred:birthPlace "Incheon" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Peakboy_(Marie_Claire_Korea_220722).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Peakboy> .
+
+<http://music.org/artist/1f193b8ea02a8ebc93b117e799ccbdf9> owl:sameAs <http://dbpedia.org/resource/Emmy_Meli> .
+
+<http://music.org/artist/1ff7ce650a770eeb2f972518bfc633c4> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/GreenDayIOW230624_(244_of_367)_(53818703170).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Simple_Minds> .
+
+<http://music.org/artist/20069edc0fdf62e68480eeecac357af8> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/DashboardConfessional_2006_cropped.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Dashboard_Confessional> .
+
+<http://music.org/artist/204c2677f872ecc7e7813c7dee1a21f0> pred:birthDate "1969-08-28"^^xsd:date ;
+    pred:birthPlace "Santa Monica, California" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/TenaciousDO2160623_(38_of_62)_Jack_Black.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Jack_Black> .
+
+<http://music.org/artist/2066a7c904cd9f6be838f9e5161d9233> pred:birthDate "1987-08-14"^^xsd:date ;
+    pred:birthPlace "Cambridge, Massachusetts" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Sam_Adams_Crowd_Surfing.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Sammy_Adams> .
+
+<http://music.org/artist/20b0f05435ce85a0a6ccac7bc69693dc> pred:birthDate "2000-04-10"^^xsd:date ;
+    pred:birthPlace "Washington (state)" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Surf_Mesa_Powell_Adderley_(cropped).png?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Surf_Mesa> .
+
+<http://music.org/artist/214248281338f49867b20436e7fab7f4> pred:birthDate "1994-05-28"^^xsd:date ;
+    pred:birthPlace "Phoenix, Arizona" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Alec_Benjamin.png?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Alec_Benjamin> .
+
+<http://music.org/artist/218159df237ee78ccc7b7038ed95c965> pred:birthDate "1964-07-20"^^xsd:date ;
+    pred:birthPlace "Seattle" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/ChrisCornellTIFFSept2011.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Chris_Cornell> .
+
+<http://music.org/artist/21db93c51fcfbf985dfc3c60ded4914c> pred:birthDate "1983-07-02"^^xsd:date ;
+    pred:birthPlace "Sedona, Arizona" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Michelle_Branch_Centennial_Concert.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Michelle_Branch> .
+
+<http://music.org/artist/2285c041a3dbff50c3566ac5f400a4d8> pred:birthDate "1957-10-07"^^xsd:date ;
+    pred:birthPlace "Kenova, West Virginia" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Michael_W._Smith_by_Gage_Skidmore.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Michael_W._Smith> .
+
+<http://music.org/artist/22cb5341b90c54b33d4a4173353257f4> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Pet_Shop_Boys_interview_2013_still.png?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Pet_Shop_Boys> .
+
+<http://music.org/artist/22f0f61d43ccbff26139c37f2f160bb8> pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/The_Neighbourhood_-_2018153150556_2018-06-02_Rock_am_Ring_-_5DS_R_-_0046_-_5DSR5992.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/The_Neighbourhood> .
+
+<http://music.org/artist/2434d5ae05a4f145a3acb10381e9e920> pred:birthDate "1943-08-28"^^xsd:date ;
+    pred:birthPlace "Chicago" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/David_Soul_%22Starsky_&_Hutch%22_(1975_ABC_publicity_photo).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/David_Soul> .
+
+<http://music.org/artist/24af2a5f50d72f81429c54da9cc10b73> pred:birthDate "1973-11-09"^^xsd:date ;
+    pred:birthPlace "Harlan, Kentucky" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Nick_Lachey_3.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Nick_Lachey> .
+
+<http://music.org/artist/24cab7af40e114d7e1073ef0c90d8ef6> pred:birthDate "1988-05-22"^^xsd:date ;
+    pred:birthPlace "Caneyville, Kentucky" ;
+    owl:sameAs <http://dbpedia.org/resource/Elvie_Shane> .
+
+<http://music.org/artist/2601b94ad46f5cad60872a4bb152a295> pred:birthDate "1988-12-15"^^xsd:date ;
+    pred:birthPlace "Dallas" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Marc_Rebillet_1_(cropped).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Marc_Rebillet> .
+
+<http://music.org/artist/26b19c6ce89314370b842b115530a24a> pred:birthDate "1973-12-07"^^xsd:date ;
+    pred:birthPlace "Dublin" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Damien_Rice_live_2.jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Damien_Rice> .
+
+<http://music.org/artist/26b637ed41273425be243e8d42e5b461> pred:birthDate "1972-10-17"^^xsd:date ;
+    pred:birthPlace "St. Joseph, Missouri" ;
+    pred:description "American rapper (born 1972)"@en ;
+    pred:externalGenre "Midwest hip-hop" ;
+    pred:image <http://commons.wikimedia.org/wiki/Special:FilePath/Eminem%202021%20Color%20Corrected.jpg> ;
+    pred:musicBrainzId "b95ce3ff-3d05-4e87-9e01-c97b66af13d4" ;
+    pred:originCountry "United States" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Eminem_2021_Color_Corrected.jpg?width=300> ;
+    pred:website <https://eminem.com> ;
+    owl:sameAs <http://dbpedia.org/resource/Eminem>,
+        <http://www.wikidata.org/entity/Q5608> .
+
+<http://music.org/artist/273230427f73b02d459de77914996869> pred:birthDate "1999-03-05"^^xsd:date ;
+    pred:birthPlace "Jericho, New York" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Madison_Beer_@_Greek_Theatre_L.A._06_13_2024_(53839434064)_(cropped_3x4).jpg?width=300> ;
+    owl:sameAs <http://dbpedia.org/resource/Madison_Beer> .
+
+<http://music.org/artist/28239d6140b4b5d6e1a8d8d4b3a05751> pred:birthDate "1989-12-13"^^xsd:date ;
+    pred:birthPlace "West Reading, Pennsylvania" ;
+    pred:description "American singer-songwriter (born 1989)"@en ;
+    pred:externalGenre "country music" ;
+    pred:image <http://commons.wikimedia.org/wiki/Special:FilePath/Taylor%20Swift%20at%20the%202023%20MTV%20Video%20Music%20Awards%20%283%29.png> ;
+    pred:musicBrainzId "20244d07-534f-4eff-b4d4-930878889970" ;
+    pred:originCountry "United States" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Taylor_Swift_at_the_2023_MTV_Video_Music_Awards_(3).png?width=300> ;
+    pred:website <https://taylorswift.com> ;
+    owl:sameAs <http://dbpedia.org/resource/Taylor_Swift>,
+        <http://www.wikidata.org/entity/Q26876> .
+
+<http://music.org/artist/ee2652075ad33343c79c5a6a1161371b> pred:birthDate "1988-05-05"^^xsd:date ;
+    pred:birthPlace "London" ;
+    pred:description "English singer-songwriter (born 1988)"@en ;
+    pred:externalGenre "blue-eyed soul" ;
+    pred:image <http://commons.wikimedia.org/wiki/Special:FilePath/Adele%202016.jpg> ;
+    pred:musicBrainzId "cc2c9c3c-b7bc-4b8b-84d8-4fbd8779e493" ;
+    pred:originCountry "United Kingdom" ;
+    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Adele_2016.jpg?width=300> ;
+    pred:website <https://www.adele.com> ;
+    owl:sameAs <http://dbpedia.org/resource/Adele>,
+        <http://www.wikidata.org/entity/Q23215> .
+

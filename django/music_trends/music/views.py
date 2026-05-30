@@ -604,11 +604,14 @@ def artist_detail(request):
             return render(request, 'artist_detail.html', {'error_message': 'Artist not found.'})
 
         artist_name = _clean_artist_label(_val(bindings[0], 'artistName'))
+        # Each genre carries its source ("Dataset" vs "Wikidata") for the tooltip.
         genres = []
+        seen_genre = set()
         for r in bindings:
             for genre in _split_genres(_val(r, 'genre', None)):
-                if genre not in genres:
-                    genres.append(genre)
+                if genre.lower() not in seen_genre:
+                    seen_genre.add(genre.lower())
+                    genres.append({'name': genre, 'source': 'Dataset'})
 
         seen_songs = set()
         songs_list = []
@@ -813,6 +816,79 @@ def artist_detail(request):
         ctx['songs'] = songs_list
         ctx['collaborators'] = collaborators
         ctx['collab_graph'] = collab_graph
+
+        # ── External enrichment (DBpedia + Wikidata via enrich_artists.py) ──
+        # All OPTIONAL: the page works whether or not artists_external.ttl was
+        # loaded into GraphDB. owl:sameAs uses the full IRI to avoid prefix deps.
+        try:
+            enrich_rows = run_select(f"""
+                SELECT ?country ?birthPlace ?birthDate ?inception ?website
+                       ?image ?thumbnail ?description ?abstract ?mbid
+                       (GROUP_CONCAT(DISTINCT ?genre; separator="||") AS ?genres)
+                       (GROUP_CONCAT(DISTINCT ?same; separator="||") AS ?sameAs)
+                WHERE {{
+                  BIND(<{uri}> AS ?artist)
+                  OPTIONAL {{ ?artist pred:originCountry ?country }}
+                  OPTIONAL {{ ?artist pred:birthPlace ?birthPlace }}
+                  OPTIONAL {{ ?artist pred:birthDate ?birthDate }}
+                  OPTIONAL {{ ?artist pred:inceptionDate ?inception }}
+                  OPTIONAL {{ ?artist pred:website ?website }}
+                  OPTIONAL {{ ?artist pred:image ?image }}
+                  OPTIONAL {{ ?artist pred:thumbnail ?thumbnail }}
+                  OPTIONAL {{ ?artist pred:description ?description }}
+                  OPTIONAL {{ ?artist pred:abstract ?abstract }}
+                  OPTIONAL {{ ?artist pred:musicBrainzId ?mbid }}
+                  OPTIONAL {{ ?artist pred:externalGenre ?genre }}
+                  OPTIONAL {{ ?artist <http://www.w3.org/2002/07/owl#sameAs> ?same }}
+                }}
+                GROUP BY ?country ?birthPlace ?birthDate ?inception ?website
+                         ?image ?thumbnail ?description ?abstract ?mbid
+            """)
+            if enrich_rows:
+                row = enrich_rows[0]
+                dbpedia = wikidata = None
+                for link in _val(row, 'sameAs', '').split('||'):
+                    if 'dbpedia.org' in link:
+                        dbpedia = link
+                    elif 'wikidata.org' in link:
+                        wikidata = link
+                ext_genres = [g for g in _val(row, 'genres', '').split('||') if g]
+                photo = _val(row, 'image', None) or _val(row, 'thumbnail', None)
+                mbid = _val(row, 'mbid', None)
+                enrichment = {
+                    'photo': photo if photo and photo != '—' else None,
+                    'country': _val(row, 'country', None),
+                    'birth_place': _val(row, 'birthPlace', None),
+                    'birth_date': _val(row, 'birthDate', None),
+                    'inception': _val(row, 'inception', None),
+                    'website': _val(row, 'website', None),
+                    'description': _val(row, 'description', None),
+                    'abstract': _val(row, 'abstract', None),
+                    'genres': ext_genres,
+                    'dbpedia': dbpedia,
+                    'wikidata': wikidata,
+                    'musicbrainz': (
+                        f'https://musicbrainz.org/artist/{mbid}'
+                        if mbid and mbid != '—' else None
+                    ),
+                }
+                # Only attach if at least one field has real data.
+                has_data = ext_genres or any(
+                    v and v != '—'
+                    for k, v in enrichment.items() if k != 'genres'
+                )
+                if has_data:
+                    ctx['enrichment'] = enrichment
+                    # Merge external (Wikidata) genres into the single genre row
+                    # shown at the top (deduplicated), so all genres live in one
+                    # place, each tagged with its source for the tooltip.
+                    existing = {g['name'].lower() for g in ctx['artist']['genres']}
+                    for g in ext_genres:
+                        if g.lower() not in existing:
+                            ctx['artist']['genres'].append({'name': g, 'source': 'Wikidata'})
+                            existing.add(g.lower())
+        except SparqlClientError:
+            pass  # enrichment is optional; never break the page
 
     except SparqlClientError as exc:
         ctx['error_message'] = str(exc)

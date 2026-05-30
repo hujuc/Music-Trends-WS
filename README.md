@@ -92,6 +92,8 @@ The loader also reads `GRAPHDB_URL` (default `http://localhost:7200`) and
 - `normalizing_data/shapes.ttl`: minimal SHACL validation shapes.
 - `normalizing_data/spin_rules.py`: independent module with the SPIN inference rules (see below).
 - `normalizing_data/spin_rules.ttl`: the same rules exported as SPIN RDF (`sp:`/`spin:`), loadable in GraphDB/Protégé.
+- `normalizing_data/enrich_artists.py`: external enrichment module (DBpedia + Wikidata).
+- `normalizing_data/artists_external.ttl`: artist triples fetched from DBpedia/Wikidata.
 - `docs/semantic_demo_queries.rq`: SPARQL queries for the semantic demo (genres, charts, albums, inference checks).
 
 Quick validation commands:
@@ -143,6 +145,40 @@ SELECT (COUNT(*) AS ?c) WHERE { ?s a type:TrendingArtist . }
 SELECT (COUNT(*) AS ?c) WHERE { ?s pred:appearsInChart ?o . }
 SELECT (COUNT(*) AS ?c) WHERE { ?s pred:collaboratedWith ?o . }
 ```
+
+### External Enrichment (DBpedia + Wikidata)
+
+`normalizing_data/enrich_artists.py` complements the artist data with information
+that is not in the original dataset, by querying the **DBpedia** and **Wikidata**
+SPARQL endpoints programmatically (via `SPARQLWrapper`):
+
+- **Wikidata** → country, genre, image, birth/inception date, official website,
+  MusicBrainz id, short description;
+- **DBpedia** → thumbnail, birth place, birth date, abstract (when available);
+- both → `owl:sameAs` links to the external entities.
+
+```bash
+cd normalizing_data
+python enrich_artists.py --names "Adele,Coldplay"   # quick test on specific names
+python enrich_artists.py --limit 200                # first 200 artists
+python enrich_artists.py                            # all artists (slow; rate-limited)
+python enrich_artists.py --rebuild                  # rebuild the TTL from cache (no network)
+python enrich_artists.py --apply                    # also insert into GraphDB
+```
+
+Notes:
+
+- Results are cached **per source** in `enrichment_cache.json`: only successful
+  queries are final, so a re-run **retries the sources that failed** (e.g. Wikidata
+  while it was rate-limited) without repeating the ones that already worked. The
+  output (`artists_external.ttl`) accumulates everything fetched so far.
+- The app reads from **GraphDB**, not from the file. `load_ttl_to_graphdb.py`
+  (and therefore `setup.sh build`) loads `artists_external.ttl` automatically when
+  it exists. After enriching more artists, push the new data with
+  `python enrich_artists.py --rebuild --apply` (or re-run `load_ttl_to_graphdb.py`).
+- Matching is by exact name, so coverage is partial (ambiguous/garbled names are
+  skipped). Wikidata may aggressively rate-limit; the module retries and falls
+  back to DBpedia, and you can re-run later to fill the gaps.
 
 ## Verification
 

@@ -15,11 +15,45 @@
   <h1>{{ artist.name }}</h1>
 
   {% if artist.genres %}
-  <p class="mt-1">
+  <p class="artist-genres">
     {% for g in artist.genres %}
-      <span class="badge badge-accent">{{ g }}</span>
+      <span class="badge badge-accent" title="Source: {{ g.source }}">{{ g.name }}</span>
     {% endfor %}
   </p>
+  {% endif %}
+
+  {% if enrichment %}
+  <div class="card section artist-about">
+    <div class="about-grid">
+      {% if enrichment.photo %}
+        <img class="about-photo" src="{{ enrichment.photo }}" alt="{{ artist.name }}" loading="lazy">
+      {% endif %}
+      <div class="about-body">
+        <h2>About</h2>
+        {% if enrichment.description %}
+          <p class="about-desc">{{ enrichment.description }}</p>
+        {% endif %}
+        {% if enrichment.abstract %}
+          <p class="text-sm text-muted">{{ enrichment.abstract|truncatewords:60 }}</p>
+        {% endif %}
+
+        <div class="about-facts">
+          {% if enrichment.country %}<div class="about-fact"><span class="about-key">Country</span><span class="about-val">{{ enrichment.country }}</span></div>{% endif %}
+          {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val">{{ enrichment.birth_place }}</span></div>{% endif %}
+          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val">{{ enrichment.birth_date }}</span></div>{% endif %}
+          {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val">{{ enrichment.inception }}</span></div>{% endif %}
+        </div>
+
+        <p class="about-links mt-1">
+          {% if enrichment.website %}<a href="{{ enrichment.website }}" target="_blank" rel="noopener">Official site ↗</a>{% endif %}
+          {% if enrichment.wikidata %}<a href="{{ enrichment.wikidata }}" target="_blank" rel="noopener">Wikidata ↗</a>{% endif %}
+          {% if enrichment.dbpedia %}<a href="{{ enrichment.dbpedia }}" target="_blank" rel="noopener">DBpedia ↗</a>{% endif %}
+          {% if enrichment.musicbrainz %}<a href="{{ enrichment.musicbrainz }}" target="_blank" rel="noopener">MusicBrainz ↗</a>{% endif %}
+        </p>
+        <p class="text-muted text-sm mt-1">Source: DBpedia &amp; Wikidata</p>
+      </div>
+    </div>
+  </div>
   {% endif %}
 
   <div class="stats-grid mt-2 section">

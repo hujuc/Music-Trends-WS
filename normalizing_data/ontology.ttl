@@ -151,3 +151,46 @@ pred:explicit a owl:DatatypeProperty ;
 pred:albumName a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
     rdfs:range xsd:string .
+
+# Propriedades de enriquecimento externo (DBpedia + Wikidata), preenchidas por
+# enrich_artists.py. Os artistas ficam ligados as entidades externas via owl:sameAs.
+pred:originCountry a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:string .
+
+pred:externalGenre a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:string .
+
+pred:description a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:string .
+
+pred:abstract a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:string .
+
+pred:birthPlace a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:string .
+
+pred:birthDate a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:date .
+
+pred:inceptionDate a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:date .
+
+pred:musicBrainzId a owl:DatatypeProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range xsd:string .
+
+pred:image a owl:ObjectProperty ;
+    rdfs:domain type:Artist .
+
+pred:thumbnail a owl:ObjectProperty ;
+    rdfs:domain type:Artist .
+
+pred:website a owl:ObjectProperty ;
+    rdfs:domain type:Artist .

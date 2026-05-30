@@ -27,10 +27,14 @@ REPOSITORY = os.getenv("REPOSITORY", "music")
 # Ficheiros RDF a carregar (pela ordem). music.ttl ja inclui o esquema da
 # ontologia; ontology.ttl e shapes.ttl sao carregados explicitamente para que o
 # repositorio fique completo mesmo quando importado de forma isolada.
+# artists_external.ttl (enriquecimento DBpedia/Wikidata) e opcional -- so e
+# carregado se ja tiver sido gerado por enrich_artists.py (a funcao de load
+# salta ficheiros inexistentes).
 RDF_FILES = [
     os.path.join(BASE_DIR, "music.ttl"),
     os.path.join(BASE_DIR, "ontology.ttl"),
     os.path.join(BASE_DIR, "shapes.ttl"),
+    os.path.join(BASE_DIR, "artists_external.ttl"),
 ]
 
 
