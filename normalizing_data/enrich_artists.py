@@ -177,19 +177,23 @@ def query_wikidata(names):
     out = {}
     for r in rows or []:
         label = r["label"]["value"]
-        if label in out:  # primeiro match por nome
-            continue
-        out[label] = {
-            "item": r["item"]["value"],
-            "country": r.get("countryLabel", {}).get("value"),
-            "genre": r.get("genreLabel", {}).get("value"),
-            "image": r.get("image", {}).get("value"),
-            "birth": r.get("birth", {}).get("value"),
-            "inception": r.get("inception", {}).get("value"),
-            "website": r.get("website", {}).get("value"),
-            "mbid": r.get("mbid", {}).get("value"),
-            "desc": r.get("desc", {}).get("value"),
-        }
+        entry = out.get(label)
+        if entry is None:  # primeiro match por nome
+            entry = {
+                "item": r["item"]["value"],
+                "country": r.get("countryLabel", {}).get("value"),
+                "genres": [],
+                "image": r.get("image", {}).get("value"),
+                "birth": r.get("birth", {}).get("value"),
+                "inception": r.get("inception", {}).get("value"),
+                "website": r.get("website", {}).get("value"),
+                "mbid": r.get("mbid", {}).get("value"),
+                "desc": r.get("desc", {}).get("value"),
+            }
+            out[label] = entry
+        genre = r.get("genreLabel", {}).get("value")
+        if genre and genre not in entry["genres"]:
+            entry["genres"].append(genre)
     return out, rows is not None  # (resultados, query teve sucesso)
 
 
@@ -247,7 +251,12 @@ def query_dbpedia(qid_by_name):
 
 # ── Construir as triplas de enriquecimento ────────────────────────────────────
 def _date(value):
-    return Literal(value[:10], datatype=XSD.date) if value else None
+    if not value:
+        return None
+    date_text = value[:10]
+    if date_text.count("-") < 2:
+        return None
+    return Literal(date_text, datatype=XSD.date)
 
 
 def add_triples(graph, artist_uri, wd, db):
@@ -264,8 +273,13 @@ def add_triples(graph, artist_uri, wd, db):
     # Wikidata (mais rico): pais, genero, imagem, sitio, MusicBrainz, descricao.
     if wd.get("country"):
         graph.add((a, PRED.originCountry, Literal(wd["country"])))
-    if wd.get("genre"):
-        graph.add((a, PRED.externalGenre, Literal(wd["genre"])))
+    genres = wd.get("genres") or []
+    if isinstance(genres, str):
+        genres = [genres]
+    if not genres and wd.get("genre"):
+        genres = [wd["genre"]]
+    for genre in genres:
+        graph.add((a, PRED.externalGenre, Literal(genre)))
     if wd.get("image"):
         graph.add((a, PRED.image, URIRef(wd["image"])))
     if wd.get("inception"):
