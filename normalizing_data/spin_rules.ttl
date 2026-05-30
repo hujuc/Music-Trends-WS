@@ -1,0 +1,113 @@
+@prefix sp: <http://spinrdf.org/sp#> .
+@prefix spin: <http://spinrdf.org/spin#> .
+@prefix type: <http://music.org/type/> .
+
+type:Artist spin:rule <http://music.org/rule/AppearsInChartRule>,
+        <http://music.org/rule/CollaboratedWithRule>,
+        <http://music.org/rule/HitArtistRule>,
+        <http://music.org/rule/TrendingArtistRule> .
+
+type:Song spin:rule <http://music.org/rule/ChartedSongRule>,
+        <http://music.org/rule/HitSongRule> .
+
+<http://music.org/rule/AppearsInChartRule> a sp:Construct,
+        spin:Rule ;
+    sp:text """PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+CONSTRUCT {
+  ?this pred:appearsInChart ?chart .
+}
+WHERE {
+  ?entry pred:song ?song ;
+         pred:inChart ?chart .
+  ?song pred:performer ?this .
+}""" ;
+    spin:labelTemplate "Artist appears in chart (new relation)" .
+
+<http://music.org/rule/ChartedSongRule> a sp:Construct,
+        spin:Rule ;
+    sp:text """PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+CONSTRUCT {
+  ?this a type:ChartedSong .
+}
+WHERE {
+  ?entry a type:ChartEntry ;
+         pred:song ?this .
+}""" ;
+    spin:labelTemplate "Charted song classification" .
+
+<http://music.org/rule/CollaboratedWithRule> a sp:Construct,
+        spin:Rule ;
+    sp:text """PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+CONSTRUCT {
+  ?this pred:collaboratedWith ?other .
+}
+WHERE {
+  ?song pred:performer ?this , ?other .
+  FILTER(?this != ?other)
+}""" ;
+    spin:labelTemplate "Artist collaboration (new symmetric relation)" .
+
+<http://music.org/rule/HitArtistRule> a sp:Construct,
+        spin:Rule ;
+    sp:text """PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+CONSTRUCT {
+  ?this a type:HitArtist .
+}
+WHERE {
+  ?song a type:HitSong ;
+         pred:performer ?this .
+}""" ;
+    spin:labelTemplate "Hit artist classification" .
+
+<http://music.org/rule/HitSongRule> a sp:Construct,
+        spin:Rule ;
+    sp:text """PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+CONSTRUCT {
+  ?this a type:HitSong .
+}
+WHERE {
+  ?entry pred:song ?this ;
+         pred:rank ?rank .
+  FILTER(?rank <= 10)
+}""" ;
+    spin:labelTemplate "Hit song classification" .
+
+<http://music.org/rule/TrendingArtistRule> a sp:Construct,
+        spin:Rule ;
+    sp:text """PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+CONSTRUCT {
+  ?this a type:TrendingArtist .
+}
+WHERE {
+  ?entry pred:song ?song ;
+         pred:rank ?rank ;
+         pred:date ?date .
+  ?song pred:performer ?this .
+  FILTER(?rank <= 10 && ?date >= "2024-01-01"^^xsd:date)
+}""" ;
+    spin:labelTemplate "Trending artist classification" .
+

@@ -107,6 +107,13 @@ def add_ontology_schema(graph):
     graph.add((entry_song, OWL.equivalentProperty, song_link))
     graph.add((has_chart_entry, OWL.inverseOf, song_link))
 
+    # Relacao simetrica inferida pela regra SPIN CollaboratedWithRule.
+    collaborated_with = PRED.collaboratedWith
+    graph.add((collaborated_with, RDF.type, OWL.ObjectProperty))
+    graph.add((collaborated_with, RDF.type, OWL.SymmetricProperty))
+    graph.add((collaborated_with, RDFS.domain, artist))
+    graph.add((collaborated_with, RDFS.range, artist))
+
     datatype_props = (
         (PRED.name, song, XSD.string),
         (PRED.name, artist, XSD.string),
@@ -528,7 +535,6 @@ add_ontology_schema(g)
 BILLBOARD_HOT_100 = URIRef(BASE["chart/billboard_hot_100"])
 g.add((BILLBOARD_HOT_100, RDF.type, TYPE.Chart))
 g.add((BILLBOARD_HOT_100, RDFS.label, Literal("Billboard Hot 100", datatype=XSD.string)))
-TRENDING_SINCE = "2024-01-01"
 
 
 PROTECTED_BANDS, SUPPRESSED_FRAGMENTS = detect_protected_band_names(
@@ -608,15 +614,15 @@ for i, row in billboard.iterrows():
 
     # a entry é a entrada da música no chart, e tem como atributos o rank, as semanas, e a data
     # é a cena q expliquei lá em cima do all i want for christmas is you, que tem tipo 170 entradas diferentes
+    # Factos base da entrada no chart. As CLASSIFICACOES automaticas
+    # (ChartedSong, HitSong, HitArtist, TrendingArtist) e a relacao
+    # artista->chart (appearsInChart) NAO sao escritas aqui: sao inferidas
+    # pelas regras SPIN definidas em spin_rules.py (ponto 3 do enunciado).
     g.add((entry_uri, PRED.song, song_uri))
     g.add((entry_uri, PRED.entrySong, song_uri))
     g.add((song_uri, PRED.hasChartEntry, entry_uri))
-    g.add((song_uri, RDF.type, TYPE.ChartedSong))
     g.add((entry_uri, PRED.inChart, BILLBOARD_HOT_100))
     g.add((entry_uri, RDF.type, TYPE.ChartEntry))
-
-    for artist_uri in song_artist_uris:
-        g.add((artist_uri, PRED.appearsInChart, BILLBOARD_HOT_100))
 
     rank_literal = as_int_literal(row["Rank"])
     weeks_literal = as_int_literal(row["Weeks in Charts"])
@@ -625,22 +631,6 @@ for i, row in billboard.iterrows():
     if weeks_literal is not None:
         g.add((entry_uri, PRED.weeks, weeks_literal))
     g.add((entry_uri, PRED.date, as_date_literal(row["Date"])))
-
-    rank_value = None
-    try:
-        rank_value = int(float(row["Rank"]))
-    except (TypeError, ValueError):
-        pass
-
-    if rank_value is not None and rank_value <= 10:
-        g.add((song_uri, RDF.type, TYPE.HitSong))
-        for artist_uri in song_artist_uris:
-            g.add((artist_uri, RDF.type, TYPE.HitArtist))
-
-        row_date = str(row["Date"]).strip()
-        if re.match(r"^\d{4}-\d{2}-\d{2}$", row_date) and row_date >= TRENDING_SINCE:
-            for artist_uri in song_artist_uris:
-                g.add((artist_uri, RDF.type, TYPE.TrendingArtist))
 
     # fazer a match pra meter os atributos da música do outro dataset
     match = find_match(song_norm, all_artists_norm)

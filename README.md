@@ -56,9 +56,11 @@ At the end, the script writes/updates `normalizing_data/music.ttl`.
 
 After running the generator, these RDF artifacts are available:
 
-- `normalizing_data/music.ttl`: full generated data + ontology declarations used by the app.
-- `normalizing_data/ontology.ttl`: ontology-only layer (classes, properties, domain/range, inverse/sub/equivalent links).
+- `normalizing_data/music.ttl`: generated facts (instance data) + ontology declarations used by the app. Classifications and derived relations are **not** baked in here — they are produced by the SPIN rules.
+- `normalizing_data/ontology.ttl`: ontology-only layer (classes, properties, domain/range, inverse/sub/equivalent/symmetric links).
 - `normalizing_data/shapes.ttl`: minimal SHACL validation shapes.
+- `normalizing_data/spin_rules.py`: independent module with the SPIN inference rules (see below).
+- `normalizing_data/spin_rules.ttl`: the same rules exported as SPIN RDF (`sp:`/`spin:`), loadable in GraphDB/Protégé.
 - `docs/semantic_demo_queries.rq`: SPARQL queries for semantic demo (genres, charts, albums, inference checks).
 
 Quick validation commands:
@@ -74,34 +76,51 @@ Compatibility note:
 - Existing predicates used by the Django app were preserved.
 - New semantic predicates (`pred:hasGenre`, `pred:inChart`, `pred:album`, `pred:performer`) were added incrementally.
 
-### Implemented Inferences (RDFS/OWL + Materialized)
+### Inference Rules (SPIN)
 
-The project now includes schema-level semantics and materialized inferred triples generated in `normalizing_data/create_rdf.py`.
+The inference rules are defined in an **independent Python module**,
+`normalizing_data/spin_rules.py`, so they are explicitly identified and isolated
+from the data generation. Each rule implements an automatic classification or a
+new relation that the RDFS/OWL engines cannot derive on their own (they need
+`FILTER` / numeric or date comparisons). `create_rdf.py` only writes the base
+facts; the rules below produce the derived knowledge.
 
-Schema-level additions:
+| Rule (`spin:rule`) | Produces | Condition |
+|---|---|---|
+| `ChartedSongRule` | `type:ChartedSong` | song referenced by ≥ 1 chart entry |
+| `HitSongRule` | `type:HitSong` | song with an entry where `rank <= 10` |
+| `HitArtistRule` | `type:HitArtist` | artist who performs a `type:HitSong` (chains on `HitSongRule`) |
+| `TrendingArtistRule` | `type:TrendingArtist` | artist with a top-10 entry dated `>= 2024-01-01` |
+| `AppearsInChartRule` | `pred:appearsInChart` | new artist → chart relation, from the artist's entries |
+| `CollaboratedWithRule` | `pred:collaboratedWith` | new symmetric artist ↔ artist relation (shared song) |
 
-- New classes: `type:ChartedSong`, `type:HitSong`, `type:HitArtist`, `type:TrendingArtist`.
-- New properties: `pred:hasChartEntry` and `pred:appearsInChart`.
-- `pred:hasChartEntry` is declared as inverse of `pred:song`.
+Each rule is stored as a SPARQL `CONSTRUCT` (SPIN `sp:text`) attached to its
+target class via `spin:rule`. The module can export the rules as SPIN RDF and
+apply them to GraphDB (materialization, for when the SPIN engine is not active):
 
-Materialized inferred data emitted in `music.ttl`:
+```bash
+cd normalizing_data
+python spin_rules.py --export                 # writes spin_rules.ttl
+python spin_rules.py --apply --dry-run        # prints the SPARQL updates
+python spin_rules.py --apply                  # materializes inferences on GraphDB
+```
 
-- `type:ChartedSong`: songs with at least one chart entry.
-- `type:HitSong`: songs with at least one entry where `pred:rank <= 10`.
-- `type:HitArtist`: artists who perform at least one `type:HitSong`.
-- `type:TrendingArtist`: artists with a top-10 song from `2024-01-01` onward.
-- `pred:hasChartEntry`: explicit song-to-entry relation.
-- `pred:appearsInChart`: explicit artist-to-chart relation.
+Recommended GraphDB workflow:
 
-Quick SPARQL checks in GraphDB:
+1. Import `music.ttl` (base facts) into the `music` repository.
+2. Import `ontology.ttl` (schema) — enables RDFS/OWL inferences (e.g. `pred:performer`
+   from `pred:mainArtist` via `rdfs:subPropertyOf`).
+3. Run `python spin_rules.py --apply` to materialize the SPIN classifications.
+
+Quick SPARQL checks in GraphDB (after applying the rules):
 
 ```sparql
 SELECT (COUNT(*) AS ?c) WHERE { ?s a type:ChartedSong . }
 SELECT (COUNT(*) AS ?c) WHERE { ?s a type:HitSong . }
 SELECT (COUNT(*) AS ?c) WHERE { ?s a type:HitArtist . }
 SELECT (COUNT(*) AS ?c) WHERE { ?s a type:TrendingArtist . }
-SELECT (COUNT(*) AS ?c) WHERE { ?s pred:hasChartEntry ?o . }
 SELECT (COUNT(*) AS ?c) WHERE { ?s pred:appearsInChart ?o . }
+SELECT (COUNT(*) AS ?c) WHERE { ?s pred:collaboratedWith ?o . }
 ```
 
 ## 4) Configure App Environment Variables

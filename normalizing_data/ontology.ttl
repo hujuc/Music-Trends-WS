@@ -72,6 +72,11 @@ pred:appearsInChart a owl:ObjectProperty ;
     rdfs:domain type:Artist ;
     rdfs:range type:Chart .
 
+# Inferida pela regra SPIN CollaboratedWithRule (ver spin_rules.py).
+pred:collaboratedWith a owl:ObjectProperty , owl:SymmetricProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range type:Artist .
+
 pred:hasGenre a owl:ObjectProperty ;
     rdfs:domain type:Song ;
     rdfs:range type:Genre .
