@@ -5,6 +5,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Music Trends{% endblock %}</title>
+  <script>
+    // Apply the saved theme before paint to avoid a flash of the wrong theme.
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="{% static 'music/style.css' %}" />
 </head>
 <body>
@@ -48,10 +57,33 @@
         </a>
       </li>
     </ul>
+    <button type="button" class="theme-toggle" aria-label="Toggle dark / light mode" title="Toggle dark / light mode">
+      <span class="theme-icon" aria-hidden="true">☀️</span>
+    </button>
   </nav>
 
   <div class="container">
     {% block content %}{% endblock %}
   </div>
+
+  <script>
+    (function () {
+      var btn = document.querySelector('.theme-toggle');
+      if (!btn) return;
+      var icon = btn.querySelector('.theme-icon');
+      function current() {
+        return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      }
+      function apply(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (icon) icon.textContent = theme === 'light' ? '🌙' : '☀️';
+        try { localStorage.setItem('theme', theme); } catch (e) {}
+      }
+      apply(current());
+      btn.addEventListener('click', function () {
+        apply(current() === 'light' ? 'dark' : 'light');
+      });
+    })();
+  </script>
 </body>
 </html>

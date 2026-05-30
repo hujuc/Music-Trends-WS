@@ -48,8 +48,8 @@ Lista exaustiva de tudo o que o enunciado ([docs/ws.tp2.pdf](ws.tp2.pdf)) pede.
   - ✅ Exposto na UI: cartão "About" no detalhe do artista (foto, país, datas,
     géneros, descrição, links Wikidata/DBpedia/site/MusicBrainz).
   - ✅ Enriquecimento corrido para todos os artistas (via mirror QLever quando o
-    WDQS oficial esteve em outage): **1692/2565** artistas (Wikidata 1692, DBpedia
-    1536), ancorado por QID `owl:sameAs` (sem falsos positivos por homónimos).
+    WDQS oficial esteve em outage): **1903/2565** artistas (Wikidata 1903, DBpedia
+    1705), ancorado por QID `owl:sameAs` (sem falsos positivos por homónimos).
 
 - [ ] ❌ **Publicar a semântica nas páginas web** — RDFa e micro-formatos nas próprias
   páginas do SI.
