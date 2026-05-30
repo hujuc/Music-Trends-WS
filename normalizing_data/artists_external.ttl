@@ -1,14 +1,1 @@
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix pred: <http://music.org/pred/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-<http://music.org/artist/06aaca002a3f73b713e247d0b5db92ee> pred:description "American rock band"@en ;
-    pred:externalGenre "alternative rock" ;
-    pred:image <http://commons.wikimedia.org/wiki/Special:FilePath/Goo%20goo%20dolls%20slide.JPG> ;
-    pred:inceptionDate "1986-01-01"^^xsd:date ;
-    pred:musicBrainzId "e2c00c56-8365-4160-9f40-a64682917633" ;
-    pred:thumbnail <http://commons.wikimedia.org/wiki/Special:FilePath/Goo_Goo_Dolls_2013_1.jpg?width=300> ;
-    pred:website <https://www.googoodolls.com/> ;
-    owl:sameAs <http://dbpedia.org/resource/Goo_Goo_Dolls>,
-        <http://www.wikidata.org/entity/Q730046> .
 

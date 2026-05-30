@@ -147,13 +147,16 @@ def query_wikidata(names):
     values = _values_labels(names)
     query = f"""
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
     PREFIX wd: <http://www.wikidata.org/entity/>
     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
     PREFIX schema: <http://schema.org/>
     SELECT ?label ?item ?countryLabel ?genreLabel ?image ?birth ?inception
            ?website ?mbid ?desc WHERE {{
-      VALUES ?label {{ {values} }}
-      ?item rdfs:label ?label .
+    VALUES ?label {{ {values} }}
+    {{ ?item rdfs:label ?label . }}
+    UNION
+    {{ ?item skos:altLabel ?label . }}
       {{ ?item wdt:P106 ?occ .
          VALUES ?occ {{ wd:Q177220 wd:Q639669 wd:Q2252262 wd:Q855091 wd:Q488205 wd:Q36834 }} }}
       UNION
