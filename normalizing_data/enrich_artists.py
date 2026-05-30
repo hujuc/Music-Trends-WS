@@ -22,6 +22,8 @@ Uso:
     python enrich_artists.py --patient               # nao-assistido: honra Retry-After
     python enrich_artists.py --rebuild               # regenera o TTL da cache (sem rede)
     python enrich_artists.py --apply                 # insere o resultado na GraphDB
+    # mirror SPARQL (quando o WDQS oficial esta em outage) -- continua SPARQL + SPARQLwrapper:
+    python enrich_artists.py --wikidata-endpoint https://qlever.cs.uni-freiburg.de/api/wikidata
 """
 
 import argparse
@@ -40,7 +42,14 @@ MUSIC_TTL = os.path.join(BASE_DIR, "music.ttl")
 OUTPUT_TTL = os.path.join(BASE_DIR, "artists_external.ttl")
 CACHE_FILE = os.path.join(BASE_DIR, "enrichment_cache.json")
 
-WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql"
+# Endpoint SPARQL da Wikidata. Por omissao usa o WDQS oficial (o que o enunciado
+# pede). E configuravel (env WIKIDATA_SPARQL_ENDPOINT ou --wikidata-endpoint) para
+# se poder apontar a um MIRROR SPARQL quando o WDQS oficial esta em outage/rate-limit
+# -- continua a ser SPARQL via SPARQLwrapper. Mirror conhecido (QLever):
+#   https://qlever.cs.uni-freiburg.de/api/wikidata
+WIKIDATA_ENDPOINT = os.getenv(
+    "WIKIDATA_SPARQL_ENDPOINT", "https://query.wikidata.org/sparql"
+)
 DBPEDIA_ENDPOINT = "https://dbpedia.org/sparql"
 USER_AGENT = "MusicTrendsWS/1.0 (academic project; WS course)"
 
@@ -132,8 +141,15 @@ def _values_labels(names):
 def query_wikidata(names):
     # P106 occupations: singer, musician, rapper, guitarist, singer-songwriter, composer.
     # P31 classes: musical group, band.
+    # Query PORTAVEL: PREFIX explicitos e labels via rdfs:label (em vez do
+    # SERVICE wikibase:label, que so existe no WDQS oficial). Assim corre tanto
+    # no WDQS como em mirrors SPARQL (ex.: QLever).
     values = _values_labels(names)
     query = f"""
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    PREFIX wd: <http://www.wikidata.org/entity/>
+    PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+    PREFIX schema: <http://schema.org/>
     SELECT ?label ?item ?countryLabel ?genreLabel ?image ?birth ?inception
            ?website ?mbid ?desc WHERE {{
       VALUES ?label {{ {values} }}
@@ -143,15 +159,16 @@ def query_wikidata(names):
       UNION
       {{ ?item wdt:P31 ?cls .
          VALUES ?cls {{ wd:Q215380 wd:Q2088357 }} }}
-      OPTIONAL {{ ?item wdt:P27 ?country . }}
-      OPTIONAL {{ ?item wdt:P136 ?genre . }}
+      OPTIONAL {{ ?item wdt:P27 ?country .
+                  ?country rdfs:label ?countryLabel . FILTER(lang(?countryLabel) = "en") }}
+      OPTIONAL {{ ?item wdt:P136 ?genre .
+                  ?genre rdfs:label ?genreLabel . FILTER(lang(?genreLabel) = "en") }}
       OPTIONAL {{ ?item wdt:P18 ?image . }}
       OPTIONAL {{ ?item wdt:P569 ?birth . }}
       OPTIONAL {{ ?item wdt:P571 ?inception . }}
       OPTIONAL {{ ?item wdt:P856 ?website . }}
       OPTIONAL {{ ?item wdt:P434 ?mbid . }}
       OPTIONAL {{ ?item schema:description ?desc . FILTER(lang(?desc) = "en") }}
-      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en" . }}
     }}
     """
     rows = run_sparql(WIKIDATA_ENDPOINT, query)
@@ -332,10 +349,18 @@ def main(argv=None):
                         help="honour the server Retry-After and retry more (unattended runs)")
     parser.add_argument("--apply", action="store_true", help="insert the result into GraphDB")
     parser.add_argument("--endpoint", default=DEFAULT_ENDPOINT, help="GraphDB endpoint")
+    parser.add_argument("--wikidata-endpoint", default=None,
+                        help="override the Wikidata SPARQL endpoint (e.g. a QLever "
+                             "mirror) when the official WDQS is rate-limited")
     args = parser.parse_args(argv)
 
     if args.patient:
         RETRY_CONFIG.update(retries=6, honor_retry_after=True)
+
+    if args.wikidata_endpoint:
+        global WIKIDATA_ENDPOINT
+        WIKIDATA_ENDPOINT = args.wikidata_endpoint
+        print(f"Wikidata endpoint: {WIKIDATA_ENDPOINT}")
 
     artists = load_artists()
     print(f"{len(artists)} artistas nos factos.")

@@ -179,6 +179,12 @@ Notes:
 - Matching is by exact name, so coverage is partial (ambiguous/garbled names are
   skipped). Wikidata may aggressively rate-limit; the module retries and falls
   back to DBpedia, and you can re-run later to fill the gaps.
+- The Wikidata endpoint is configurable (`WIKIDATA_SPARQL_ENDPOINT` env var or
+  `--wikidata-endpoint`). It defaults to the official WDQS
+  (`https://query.wikidata.org/sparql`). When WDQS is in outage/rate-limited, you
+  can point it at a **SPARQL mirror** (still SPARQL + `SPARQLWrapper`), e.g. QLever
+  `https://qlever.cs.uni-freiburg.de/api/wikidata`. The query is endpoint-portable
+  (no `wikibase:label` service dependency).
 
 ## Verification
 
