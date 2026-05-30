@@ -157,8 +157,7 @@ def query_wikidata(names):
       {{ ?item wdt:P106 ?occ .
          VALUES ?occ {{ wd:Q177220 wd:Q639669 wd:Q2252262 wd:Q855091 wd:Q488205 wd:Q36834 }} }}
       UNION
-      {{ ?item wdt:P31 ?cls .
-         VALUES ?cls {{ wd:Q215380 wd:Q2088357 }} }}
+      {{ ?item wdt:P31 ?gtype . ?gtype wdt:P279* wd:Q2088357 }}
       OPTIONAL {{ ?item wdt:P27 ?country .
                   ?country rdfs:label ?countryLabel . FILTER(lang(?countryLabel) = "en") }}
       OPTIONAL {{ ?item wdt:P136 ?genre .
