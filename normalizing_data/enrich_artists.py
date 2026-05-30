@@ -192,40 +192,54 @@ def query_wikidata(names):
 
 
 # ── DBpedia ───────────────────────────────────────────────────────────────────
-def query_dbpedia(names):
-    # Bandas/grupos sao dbo:Band/MusicalGroup/MusicalArtist; artistas a solo
-    # aparecem como dbo:Person com dbo:occupation. As duas vias evitam falhar os
-    # solistas (que nao sao tipados como MusicalArtist) e as paginas ambiguas.
-    values = _values_labels(names)
+def query_dbpedia(qid_by_name):
+    """DBpedia ANCORADA ao QID da Wikidata (owl:sameAs), nao ao nome.
+
+    Casar por nome confunde homonimos (ex.: uma cantora vs. uma enfermeira com o
+    mesmo nome). Como a Wikidata ja identificou a entidade certa (filtra por
+    ocupacao musical), buscamos o recurso DBpedia que e `owl:sameAs` desse QID --
+    garantindo que ambas as fontes falam da MESMA pessoa.
+
+    qid_by_name: {nome_artista: URI_da_entidade_wikidata}
+    """
+    if not qid_by_name:
+        return {}, True
+    qid_to_name = {qid: name for name, qid in qid_by_name.items()}
+    values = " ".join(f"<{q}>" for q in qid_by_name.values())
     query = f"""
     PREFIX dbo: <http://dbpedia.org/ontology/>
-    SELECT ?label ?a ?abstract (SAMPLE(?th) AS ?thumbnail)
-           (SAMPLE(?bd) AS ?birth) (SAMPLE(?bpl) AS ?birthPlace) WHERE {{
-      VALUES ?label {{ {values} }}
-      ?a rdfs:label ?label .
-      {{ ?a a dbo:Band }} UNION {{ ?a a dbo:MusicalGroup }}
-      UNION {{ ?a a dbo:MusicalArtist }} UNION {{ ?a a dbo:Person ; dbo:occupation ?occ }}
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+    SELECT ?wd ?a ?abstract (SAMPLE(?th) AS ?thumbnail)
+           (SAMPLE(?bpl) AS ?birthPlace) WHERE {{
+      VALUES ?wd {{ {values} }}
+      ?a owl:sameAs ?wd .
+      FILTER(strstarts(str(?a), "http://dbpedia.org/resource/"))
       OPTIONAL {{ ?a dbo:abstract ?abstract . FILTER(lang(?abstract) = "en") }}
       OPTIONAL {{ ?a dbo:thumbnail ?th . }}
-      OPTIONAL {{ ?a dbo:birthDate ?bd . }}
       OPTIONAL {{ ?a dbo:birthPlace ?bplR . ?bplR rdfs:label ?bpl .
                   FILTER(lang(?bpl) = "en") }}
     }}
-    GROUP BY ?label ?a ?abstract
+    GROUP BY ?wd ?a ?abstract
     """
     rows = run_sparql(DBPEDIA_ENDPOINT, query)
     out = {}
     for r in rows or []:
-        label = r["label"]["value"]
-        if label in out:
+        name = qid_to_name.get(r["wd"]["value"])
+        if not name:
             continue
-        out[label] = {
-            "resource": r["a"]["value"],
-            "abstract": r.get("abstract", {}).get("value"),
-            "thumbnail": r.get("thumbnail", {}).get("value"),
-            "birth": r.get("birth", {}).get("value"),
-            "birthPlace": r.get("birthPlace", {}).get("value"),
-        }
+        thumb = r.get("thumbnail", {}).get("value")
+        entry = out.setdefault(
+            name, {"resource": None, "abstract": None, "thumbnail": None, "birthPlace": None}
+        )
+        # Varios recursos podem apontar ao mesmo QID (ex.: Adele e Adele_(singer));
+        # prefere o que tem thumbnail e une os campos disponiveis.
+        if entry["resource"] is None or (thumb and not entry["thumbnail"]):
+            entry["resource"] = r["a"]["value"]
+        for key in ("abstract", "thumbnail", "birthPlace"):
+            value = r.get(key, {}).get("value")
+            if value and not entry[key]:
+                entry[key] = value
     return out, rows is not None  # (resultados, query teve sucesso)
 
 
@@ -385,9 +399,7 @@ def main(argv=None):
         # uma re-execucao preenche o que ficou em falta (ex.: Wikidata bloqueada),
         # sem repetir as consultas que ja resultaram.
         pending_wd = [n for n in names if not source_ok(cache.get(n), "wd")]
-        pending_db = [n for n in names if not source_ok(cache.get(n), "db")]
-        print(f"{len(names)} artistas | a (re)consultar Wikidata: {len(pending_wd)}, "
-              f"DBpedia: {len(pending_db)}.")
+        print(f"{len(names)} artistas | a (re)consultar Wikidata: {len(pending_wd)}.")
 
         for batch in chunks(pending_wd, args.batch_size):
             print(f"  Wikidata: lote de {len(batch)}...")
@@ -403,12 +415,29 @@ def main(argv=None):
             save_cache(cache)
             time.sleep(args.sleep)
 
+        # DBpedia ancorada ao QID da Wikidata -> so corre para artistas cuja
+        # Wikidata ja foi resolvida (wd_ok). Os que tem QID sao consultados por
+        # owl:sameAs; os que a Wikidata nao encontrou ficam sem DBpedia (evita
+        # falsos positivos por nome, ex.: homonimos).
+        pending_db = [
+            n for n in names
+            if source_ok(cache.get(n), "wd") and not source_ok(cache.get(n), "db")
+        ]
+        print(f"a (re)consultar DBpedia (via QID): {len(pending_db)}.")
         for batch in chunks(pending_db, args.batch_size):
-            print(f"  DBpedia: lote de {len(batch)}...")
-            data, ok = query_dbpedia(batch)
+            qid_by_name = {}
+            for name in batch:
+                wd = (cache.get(name) or {}).get("wd")
+                if wd and wd.get("item"):
+                    qid_by_name[name] = wd["item"]
+            print(f"  DBpedia: lote de {len(batch)} ({len(qid_by_name)} com QID)...")
+            data, ok = query_dbpedia(qid_by_name)
             for name in batch:
                 entry = cache.setdefault(name, {})
-                if ok:
+                if name not in qid_by_name:
+                    entry["db"] = None       # sem ancora Wikidata -> sem DBpedia
+                    entry["db_ok"] = True
+                elif ok:
                     entry["db"] = data.get(name)
                     entry["db_ok"] = True
                 else:
