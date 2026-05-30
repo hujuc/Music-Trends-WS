@@ -49,7 +49,10 @@ Lista exaustiva de tudo o que o enunciado ([docs/ws.tp2.pdf](ws.tp2.pdf)) pede.
     géneros, descrição, links Wikidata/DBpedia/site/MusicBrainz).
   - ✅ Enriquecimento corrido para todos os artistas (via mirror QLever quando o
     WDQS oficial esteve em outage): **1903/2565** artistas (Wikidata 1903, DBpedia
-    1705), ancorado por QID `owl:sameAs` (sem falsos positivos por homónimos).
+    1758). Matching robusto: Wikidata por `rdfs:label`/`skos:altLabel` com
+    desambiguação de homónimos (rdfs:label > altLabel, Wikipedia EN, MusicBrainz)
+    e tipos de banda por subclasses (`P279*`); DBpedia ancorada por QID
+    `owl:sameAs` excluindo lugares (`dbo:Place`).
 
 - [ ] ❌ **Publicar a semântica nas páginas web** — RDFa e micro-formatos nas próprias
   páginas do SI.

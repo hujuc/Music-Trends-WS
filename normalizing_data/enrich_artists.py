@@ -144,6 +144,11 @@ def query_wikidata(names):
     # Query PORTAVEL: PREFIX explicitos e labels via rdfs:label (em vez do
     # SERVICE wikibase:label, que so existe no WDQS oficial). Assim corre tanto
     # no WDQS como em mirrors SPARQL (ex.: QLever).
+    # Casa por rdfs:label OU skos:altLabel. Como um nome pode ser ambiguo (ex.:
+    # "Train" e a banda americana mas tambem o alias da japonesa "Densha"),
+    # recolhemos TODOS os candidatos e escolhemos o melhor por sinais de
+    # desambiguacao: match por rdfs:label (vs altLabel) > tem artigo na Wikipedia
+    # EN > tem MusicBrainz id.
     values = _values_labels(names)
     query = f"""
     PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -151,16 +156,18 @@ def query_wikidata(names):
     PREFIX wd: <http://www.wikidata.org/entity/>
     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
     PREFIX schema: <http://schema.org/>
-    SELECT ?label ?item ?countryLabel ?genreLabel ?image ?birth ?inception
-           ?website ?mbid ?desc WHERE {{
-    VALUES ?label {{ {values} }}
-    {{ ?item rdfs:label ?label . }}
-    UNION
-    {{ ?item skos:altLabel ?label . }}
-      {{ ?item wdt:P106 ?occ .
-         VALUES ?occ {{ wd:Q177220 wd:Q639669 wd:Q2252262 wd:Q855091 wd:Q488205 wd:Q36834 }} }}
-      UNION
-      {{ ?item wdt:P31 ?gtype . ?gtype wdt:P279* wd:Q2088357 }}
+    SELECT ?label ?item ?viaLabel ?enwiki ?countryLabel ?genreLabel ?image
+           ?birth ?inception ?website ?mbid ?desc WHERE {{
+      VALUES ?label {{ {values} }}
+      {{ {{ ?item rdfs:label ?label . BIND(1 AS ?viaLabel) }}
+         UNION
+         {{ ?item skos:altLabel ?label . BIND(0 AS ?viaLabel) }} }}
+      {{ {{ ?item wdt:P106 ?occ .
+            VALUES ?occ {{ wd:Q177220 wd:Q639669 wd:Q2252262 wd:Q855091 wd:Q488205 wd:Q36834 }} }}
+         UNION
+         {{ ?item wdt:P31 ?gtype . ?gtype wdt:P279* wd:Q2088357 }} }}
+      OPTIONAL {{ ?article schema:about ?item ;
+                           schema:isPartOf <https://en.wikipedia.org/> . BIND(1 AS ?enwiki) }}
       OPTIONAL {{ ?item wdt:P27 ?country .
                   ?country rdfs:label ?countryLabel . FILTER(lang(?countryLabel) = "en") }}
       OPTIONAL {{ ?item wdt:P136 ?genre .
@@ -174,26 +181,44 @@ def query_wikidata(names):
     }}
     """
     rows = run_sparql(WIKIDATA_ENDPOINT, query)
-    out = {}
+    # name -> {item -> dados agregados + sinais}
+    candidates = {}
     for r in rows or []:
-        label = r["label"]["value"]
-        entry = out.get(label)
-        if entry is None:  # primeiro match por nome
-            entry = {
-                "item": r["item"]["value"],
-                "country": r.get("countryLabel", {}).get("value"),
-                "genres": [],
-                "image": r.get("image", {}).get("value"),
-                "birth": r.get("birth", {}).get("value"),
-                "inception": r.get("inception", {}).get("value"),
-                "website": r.get("website", {}).get("value"),
-                "mbid": r.get("mbid", {}).get("value"),
-                "desc": r.get("desc", {}).get("value"),
+        name = r["label"]["value"]
+        item = r["item"]["value"]
+        by_item = candidates.setdefault(name, {})
+        cand = by_item.get(item)
+        if cand is None:
+            cand = {
+                "item": item, "country": None, "genres": [], "image": None,
+                "birth": None, "inception": None, "website": None,
+                "mbid": None, "desc": None, "_via_label": False, "_enwiki": False,
             }
-            out[label] = entry
+            by_item[item] = cand
+        if r.get("viaLabel", {}).get("value") == "1":
+            cand["_via_label"] = True
+        if r.get("enwiki", {}).get("value") == "1":
+            cand["_enwiki"] = True
         genre = r.get("genreLabel", {}).get("value")
-        if genre and genre not in entry["genres"]:
-            entry["genres"].append(genre)
+        if genre and genre not in cand["genres"]:
+            cand["genres"].append(genre)
+        for field, key in (("country", "countryLabel"), ("image", "image"),
+                           ("birth", "birth"), ("inception", "inception"),
+                           ("website", "website"), ("mbid", "mbid"), ("desc", "desc")):
+            if not cand[field]:
+                value = r.get(key, {}).get("value")
+                if value:
+                    cand[field] = value
+
+    out = {}
+    for name, by_item in candidates.items():
+        best = max(by_item.values(), key=lambda c: (
+            c["_via_label"], c["_enwiki"], bool(c["mbid"]), bool(c["desc"]),
+            len(c["genres"]),
+        ))
+        best.pop("_via_label", None)
+        best.pop("_enwiki", None)
+        out[name] = best
     return out, rows is not None  # (resultados, query teve sucesso)
 
 
@@ -221,6 +246,9 @@ def query_dbpedia(qid_by_name):
       VALUES ?wd {{ {values} }}
       ?a owl:sameAs ?wd .
       FILTER(strstarts(str(?a), "http://dbpedia.org/resource/"))
+      # Por vezes um lugar partilha (erradamente) o mesmo QID que a banda
+      # (ex.: "Train, Bavaria" vs. a banda Train). Um artista nunca e um lugar.
+      FILTER NOT EXISTS {{ ?a a dbo:Place }}
       OPTIONAL {{ ?a dbo:abstract ?abstract . FILTER(lang(?abstract) = "en") }}
       OPTIONAL {{ ?a dbo:thumbnail ?th . }}
       OPTIONAL {{ ?a dbo:birthPlace ?bplR . ?bplR rdfs:label ?bpl .
