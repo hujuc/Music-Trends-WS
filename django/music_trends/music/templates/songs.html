@@ -40,7 +40,12 @@
 {% if songs %}
   <p class="text-muted text-sm mt-1" style="margin-bottom: 0.8rem;">{{ total_count }} songs found.</p>
   <div class="card">
-    <table>
+    <table class="songs-table">
+      <colgroup>
+        <col class="songs-table-col-song" />
+        <col class="songs-table-col-artist" />
+        <col class="songs-table-col-genres" />
+      </colgroup>
       <thead>
         <tr>
           <th>Song</th>
@@ -51,9 +56,9 @@
       <tbody>
         {% for song in songs %}
         <tr>
-          <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
-          <td><a href="{% url 'artist_detail' %}?uri={{ song.artist_uri }}">{{ song.artist }}</a></td>
-          <td>
+          <td class="songs-table-cell songs-table-cell-song"><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
+          <td class="songs-table-cell songs-table-cell-artist"><a href="{% url 'artist_detail' %}?uri={{ song.artist_uri }}">{{ song.artist }}</a></td>
+          <td class="songs-table-cell songs-table-cell-genres">
             {% if song.genres %}
               {% for g in song.genres %}
                 <span class="badge">{{ g }}</span>

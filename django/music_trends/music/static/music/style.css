@@ -181,6 +181,24 @@ table {
   border-collapse: collapse;
 }
 
+.songs-table {
+  table-layout: fixed;
+}
+
+.songs-table-col-song { width: 35%; }
+.songs-table-col-artist { width: 30%; }
+.songs-table-col-genres { width: 35%; }
+
+.songs-table-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.songs-table-cell-genres {
+  white-space: normal;
+}
+
 .table-scroll {
   overflow-x: auto;
 }
