@@ -133,6 +133,7 @@ facts; the rules below produce the derived knowledge.
 |---|---|---|
 | `ChartedSongRule` | `type:ChartedSong` | song referenced by ≥ 1 chart entry |
 | `HitSongRule` | `type:HitSong` | song with an entry where `rank <= 10` |
+| `LongTailSongRule` | `type:LongTailSong` | song with `MAX(weeks) >= 20` across chart entries |
 | `HitArtistRule` | `type:HitArtist` | artist who performs a `type:HitSong` (chains on `HitSongRule`) |
 | `TrendingArtistRule` | `type:TrendingArtist` | artist with a top-10 entry dated `>= 2024-01-01` |
 | `AppearsInChartRule` | `pred:appearsInChart` | new artist → chart relation, from the artist's entries |

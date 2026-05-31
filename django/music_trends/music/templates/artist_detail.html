@@ -30,11 +30,12 @@
       {% endif %}
       <div class="about-body">
         <h2>About</h2>
-        {% if enrichment.description %}
-          <p class="about-desc">{{ enrichment.description }}</p>
-        {% endif %}
         {% if enrichment.abstract %}
-          <p class="text-sm text-muted">{{ enrichment.abstract|truncatewords:60 }}</p>
+          <p class="about-desc">{{ enrichment.abstract|truncatewords:70 }}</p>
+          <p class="text-sm text-muted">Text source: DBpedia abstract.</p>
+        {% elif enrichment.description %}
+          <p class="about-desc">{{ enrichment.description }}</p>
+          <p class="text-sm text-muted">Text source: Wikidata description (fallback).</p>
         {% endif %}
 
         <div class="about-facts">
@@ -61,7 +62,7 @@
           {% if enrichment.dbpedia %}<a href="{{ enrichment.dbpedia }}" target="_blank" rel="noopener">DBpedia ↗</a>{% endif %}
           {% if enrichment.musicbrainz %}<a href="{{ enrichment.musicbrainz }}" target="_blank" rel="noopener">MusicBrainz ↗</a>{% endif %}
         </p>
-        <p class="text-muted text-sm mt-1">Source: DBpedia &amp; Wikidata</p>
+        <p class="text-muted text-sm mt-1">Structured data: Wikidata. Biographical text: DBpedia.</p>
       </div>
     </div>
   </div>

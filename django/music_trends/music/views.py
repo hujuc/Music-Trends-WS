@@ -60,9 +60,12 @@ def _split_genres(raw_genre):
 
 def home(request):
     ctx = {
-        'stats': {'songs': '—', 'artists': '—', 'chart_entries': '—'},
+        'stats': {'songs': '—', 'artists': '—', 'chart_entries': '—', 'longtail_songs': '—'},
         'top_artists': [],
         'top_songs': [],
+        'longtail_top_songs': [],
+        'longtail_top_artists': [],
+        'longtail_avg_popularity': '—',
         'semantic_genres': [],
         'chart_distribution': [],
     }
@@ -76,6 +79,9 @@ def home(request):
 
         r = run_select("SELECT (COUNT(?e) AS ?count) WHERE { ?e a type:ChartEntry . }")
         ctx['stats']['chart_entries'] = _val(r[0], 'count') if r else '—'
+
+        r = run_select("SELECT (COUNT(DISTINCT ?s) AS ?count) WHERE { ?s a type:LongTailSong . }")
+        ctx['stats']['longtail_songs'] = _val(r[0], 'count') if r else '—'
 
         r = run_select("""
             SELECT ?artist ?artistName (COUNT(?entry) AS ?entries)
@@ -128,6 +134,63 @@ def home(request):
             }
             for row in r
         ]
+
+        r = run_select("""
+            SELECT ?song ?songName ?artist ?artistName (MAX(?weeks) AS ?maxWeeks)
+            WHERE {
+              ?song a type:LongTailSong ;
+                    pred:name ?songName .
+              ?entry a type:ChartEntry ;
+                     pred:song ?song ;
+                     pred:weeks ?weeks .
+              OPTIONAL {
+                ?song pred:mainArtist ?artist .
+                ?artist pred:name ?artistName .
+              }
+            }
+            GROUP BY ?song ?songName ?artist ?artistName
+            ORDER BY DESC(?maxWeeks) ASC(?songName)
+            LIMIT 10
+        """)
+        ctx['longtail_top_songs'] = [
+            {
+                'uri': _val(row, 'song'),
+                'name': _val(row, 'songName'),
+                'artist_uri': _val(row, 'artist', ''),
+                'artist_name': _clean_artist_label(_val(row, 'artistName')),
+                'max_weeks': _safe_int(_val(row, 'maxWeeks')),
+            }
+            for row in r
+        ]
+
+        r = run_select("""
+            SELECT ?artist ?artistName (COUNT(DISTINCT ?song) AS ?longTailSongs)
+            WHERE {
+              ?song a type:LongTailSong ;
+                    pred:mainArtist ?artist .
+              ?artist pred:name ?artistName .
+            }
+            GROUP BY ?artist ?artistName
+            ORDER BY DESC(?longTailSongs) ASC(?artistName)
+            LIMIT 10
+        """)
+        ctx['longtail_top_artists'] = [
+            {
+                'uri': _val(row, 'artist'),
+                'name': _clean_artist_label(_val(row, 'artistName')),
+                'count': _safe_int(_val(row, 'longTailSongs')),
+            }
+            for row in r
+        ]
+
+        r = run_select("""
+            SELECT (AVG(?popularity) AS ?avgPopularity)
+            WHERE {
+              ?song a type:LongTailSong ;
+                    pred:popularity ?popularity .
+            }
+        """)
+        ctx['longtail_avg_popularity'] = _safe_float(_val(r[0], 'avgPopularity')) if r else '—'
 
         r = run_select("""
             SELECT ?genre ?genreLabel (COUNT(DISTINCT ?song) AS ?numSongs)

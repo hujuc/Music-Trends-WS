@@ -35,6 +35,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_ENDPOINT = os.getenv(
     "GRAPHDB_ENDPOINT", "http://localhost:7200/repositories/music"
 )
+LONGTAIL_MIN_WEEKS = int(os.getenv("LONGTAIL_MIN_WEEKS", "20"))
 SPIN_TTL_OUTPUT = os.path.join(BASE_DIR, "spin_rules.ttl")
 
 # ── Namespaces ────────────────────────────────────────────────────────────────
@@ -115,6 +116,28 @@ RULES = [
             "?entry pred:song ?this ;\n"
             "         pred:rank ?rank .\n"
             "  FILTER(?rank <= 10)"
+        ),
+    ),
+    SpinRule(
+        rule_id="LongTailSongRule",
+        label="Long-tail song classification",
+        comment=(
+            "Uma musica e LongTailSong quando a sua longevidade no chart e alta "
+            f"(MAX(weeks) >= {LONGTAIL_MIN_WEEKS}). Mede persistencia, nao pico."
+        ),
+        target_class=TYPE.Song,
+        head="?this a type:LongTailSong .",
+        where=(
+            "{\n"
+            "    SELECT ?this (MAX(?weeks) AS ?maxWeeks)\n"
+            "    WHERE {\n"
+            "      ?entry a type:ChartEntry ;\n"
+            "             pred:song ?this ;\n"
+            "             pred:weeks ?weeks .\n"
+            "    }\n"
+            "    GROUP BY ?this\n"
+            "  }\n"
+            f"  FILTER(?maxWeeks >= {LONGTAIL_MIN_WEEKS})"
         ),
     ),
     SpinRule(

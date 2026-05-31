@@ -16,6 +16,9 @@ type:ChartedSong a owl:Class ;
 type:HitSong a owl:Class ;
     rdfs:subClassOf type:ChartedSong .
 
+type:LongTailSong a owl:Class ;
+    rdfs:subClassOf type:ChartedSong .
+
 type:Artist a owl:Class .
 type:HitArtist a owl:Class ;
     rdfs:subClassOf type:Artist .

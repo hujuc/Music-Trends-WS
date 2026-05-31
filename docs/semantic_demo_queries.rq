@@ -60,6 +60,61 @@ WHERE {
 LIMIT 20
 
 
+# Materialized inference: long-tail songs (MAX weeks >= threshold)
+PREFIX type: <http://music.org/type/>
+
+SELECT (COUNT(DISTINCT ?song) AS ?longTailSongs)
+WHERE {
+  ?song a type:LongTailSong .
+}
+
+
+# Materialized inference: longest charting long-tail songs
+PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+
+SELECT ?song ?songName (MAX(?weeks) AS ?maxWeeks)
+WHERE {
+  ?song a type:LongTailSong ;
+        pred:name ?songName .
+  ?entry pred:song ?song ;
+         pred:weeks ?weeks .
+}
+GROUP BY ?song ?songName
+ORDER BY DESC(?maxWeeks)
+LIMIT 20
+
+
+# Materialized inference: long-tail songs by artist
+PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+
+SELECT ?artist ?artistName (COUNT(DISTINCT ?song) AS ?longTailSongs)
+WHERE {
+  ?song a type:LongTailSong ;
+        pred:mainArtist ?artist .
+  ?artist pred:name ?artistName .
+}
+GROUP BY ?artist ?artistName
+ORDER BY DESC(?longTailSongs)
+LIMIT 15
+
+
+# Popularity comparison: long-tail songs vs others
+PREFIX type: <http://music.org/type/>
+PREFIX pred: <http://music.org/pred/>
+
+SELECT ?category (AVG(?popularity) AS ?avgPopularity)
+WHERE {
+  ?song pred:popularity ?popularity .
+  BIND(
+    IF(EXISTS { ?song a type:LongTailSong }, "Long-tail songs", "Other songs")
+    AS ?category
+  )
+}
+GROUP BY ?category
+
+
 # Materialized inference: charted songs
 PREFIX type: <http://music.org/type/>
 
