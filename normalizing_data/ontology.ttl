@@ -16,6 +16,9 @@ type:ChartedSong a owl:Class ;
 type:HitSong a owl:Class ;
     rdfs:subClassOf type:ChartedSong .
 
+type:LongTailSong a owl:Class ;
+    rdfs:subClassOf type:ChartedSong .
+
 type:Artist a owl:Class .
 type:HitArtist a owl:Class ;
     rdfs:subClassOf type:Artist .
@@ -25,6 +28,7 @@ type:TrendingArtist a owl:Class ;
 
 type:Genre a owl:Class .
 type:Chart a owl:Class .
+type:Country a owl:Class .
 type:Album a owl:Class .
 type:ChartEntry a owl:Class ;
     rdfs:subClassOf prov:Entity .
@@ -154,7 +158,11 @@ pred:albumName a owl:DatatypeProperty ;
 
 # Propriedades de enriquecimento externo (DBpedia + Wikidata), preenchidas por
 # enrich_artists.py. Os artistas ficam ligados as entidades externas via owl:sameAs.
-pred:originCountry a owl:DatatypeProperty ;
+pred:originCountry a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range type:Country .
+
+pred:originCountryLabel a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
     rdfs:range xsd:string .
 

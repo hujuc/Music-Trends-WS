@@ -47,8 +47,24 @@ Then open:
 
 ```bash
 ./setup.sh build   # (re)generate RDF + load into GraphDB + apply SPIN rules
+./setup.sh full    # build + enrichment (Wikidata/DBpedia) + reload + run server
 ./setup.sh run     # migrate + run the Django server (data already loaded)
 ```
+
+### Complete database (everything, including external enrichment)
+
+Use this when you want a fully populated repository (base RDF + ontology + SHACL
++ SPIN inferences + DBpedia/Wikidata enrichment):
+
+```bash
+# from repository root
+./setup.sh full
+```
+
+Why this order:
+
+- `setup.sh full` creates base RDF, enriches artists, reloads all RDF layers,
+  reapplies SPIN rules, runs migrations, and starts the app.
 
 ## Manual Steps (alternative to setup.sh)
 
@@ -117,6 +133,7 @@ facts; the rules below produce the derived knowledge.
 |---|---|---|
 | `ChartedSongRule` | `type:ChartedSong` | song referenced by ≥ 1 chart entry |
 | `HitSongRule` | `type:HitSong` | song with an entry where `rank <= 10` |
+| `LongTailSongRule` | `type:LongTailSong` | song with `MAX(weeks) >= 20` across chart entries |
 | `HitArtistRule` | `type:HitArtist` | artist who performs a `type:HitSong` (chains on `HitSongRule`) |
 | `TrendingArtistRule` | `type:TrendingArtist` | artist with a top-10 entry dated `>= 2024-01-01` |
 | `AppearsInChartRule` | `pred:appearsInChart` | new artist → chart relation, from the artist's entries |
