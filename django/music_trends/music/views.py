@@ -8,6 +8,12 @@ from django.shortcuts import render, redirect
 
 from .sparql_client import SparqlClientError, run_select, run_update, sparql_escape_literal
 
+import urllib.request
+import urllib.parse
+import urllib.error
+import json as _json
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 MONTH_NAMES = {
@@ -476,6 +482,7 @@ def song_detail(request):
                 pass
 
         ctx['song'] = {
+            'uri': uri,
             'name': _val(row0, 'songName'),
             'main_artist_uri': _val(row0, 'mainArtist'),
             'main_artist_name': _clean_artist_label(_val(row0, 'mainArtistName')),
@@ -484,6 +491,7 @@ def song_detail(request):
             'popularity': _safe_float(_val(row0, 'popularity', None)),
             'tempo': _safe_float(_val(row0, 'tempo', None), 1),
             'duration_min': duration_min,
+            'duration_ms': raw_dur if raw_dur and raw_dur != '—' else '',
             'explicit': _val(row0, 'explicit', None),
             'album_name': _val(row0, 'albumName', None),
             'audio_features': audio_features,
@@ -802,6 +810,7 @@ def artist_detail(request):
         avg_valence = round(sum(valence_values) / len(valence_values), 3) if valence_values else '—'
 
         ctx['artist'] = {
+            'uri': uri,
             'name': artist_name,
             'genres': genres,
             'song_count': len(songs_list),
@@ -1861,3 +1870,23 @@ def billboard(request):
 
 def about_data(request):
     return render(request, 'about_data.html', {})
+
+
+# ── Lyrics proxy (lrclib.net) ─────────────────────────────────────────────────
+def lyrics(request):
+    from django.http import JsonResponse
+    track = request.GET.get('track', '').strip()
+    artist = request.GET.get('artist', '').strip()
+    if not track or not artist:
+        return JsonResponse({'error': 'Missing track or artist'}, status=400)
+
+    url = 'https://lrclib.net/api/get?' + urllib.parse.urlencode({'track_name': track, 'artist_name': artist})
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'MusicTrendsWS/1.0'})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = _json.loads(resp.read().decode())
+        return JsonResponse({'plainLyrics': data.get('plainLyrics') or '', 'syncedLyrics': data.get('syncedLyrics') or ''})
+    except urllib.error.HTTPError:
+        return JsonResponse({'error': 'Lyrics not found'}, status=404)
+    except Exception:
+        return JsonResponse({'error': 'Request failed'}, status=500)

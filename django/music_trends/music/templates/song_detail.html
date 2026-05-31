@@ -1,157 +1,220 @@
-{% extends "base.html" %}
-{% block title %}{% if song %}{{ song.name }} — {% endif %}Music Trends{% endblock %}
+{% extends 'base.html' %}
+{% block title %}
+  {% if song %}
+    {{ song.name }} —
+  {% endif %}Music Trends
+{% endblock %}
 
 {% block content %}
-
-{% if error_message %}
-  <div class="alert alert-error">{{ error_message }}</div>
-  <a href="{% url 'songs' %}" class="btn">← Back to Songs</a>
-
-{% elif song %}
-
-  <p class="text-muted text-sm" style="margin-bottom: 1rem;">
-    <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
-  </p>
-
-  <h1>{{ song.name }}</h1>
-  <p class="text-muted mt-1">
-    by <a href="{% url 'artist_detail' %}?uri={{ song.main_artist_uri }}">{{ song.main_artist_name }}</a>
-    {% if song.album_name %}&nbsp;·&nbsp;{{ song.album_name }}{% endif %}
-  </p>
-
-  <div class="two-col mt-2">
-
-    <!-- Left column: details + chart history -->
-    <div>
-      <div class="card section">
-        <h2>Details</h2>
-        <table>
-          <tbody>
-            {% if song.genres %}
-            <tr>
-              <td class="text-muted text-sm" style="width:40%">Genre</td>
-              <td>{% for g in song.genres %}<span class="badge">{{ g }}</span> {% endfor %}</td>
-            </tr>
-            {% endif %}
-            {% if song.tempo %}
-            <tr>
-              <td class="text-muted text-sm">Tempo</td>
-              <td>{{ song.tempo }} BPM</td>
-            </tr>
-            {% endif %}
-            {% if song.duration_min %}
-            <tr>
-              <td class="text-muted text-sm">Duration</td>
-              <td>{{ song.duration_min }}</td>
-            </tr>
-            {% endif %}
-            {% if song.explicit %}
-            <tr>
-              <td class="text-muted text-sm">Explicit</td>
-              <td>{{ song.explicit }}</td>
-            </tr>
-            {% endif %}
-            {% if song.featured_artists %}
-            <tr>
-              <td class="text-muted text-sm">Featured</td>
-              <td>
-                {% for fa in song.featured_artists %}
-                  <a href="{% url 'artist_detail' %}?uri={{ fa.uri }}">{{ fa.name }}</a>{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-              </td>
-            </tr>
-            {% endif %}
-          </tbody>
-        </table>
-      </div>
-
-      {% if chart_entries %}
-      <div class="card">
-        <h2>Chart History</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Rank</th>
-              <th>Weeks</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for entry in chart_entries %}
-            <tr>
-              <td>{{ entry.date }}</td>
-              <td>#{{ entry.rank }}</td>
-              <td>{{ entry.weeks }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Right column: audio features -->
-    <div class="card">
-      <h2>Audio Features</h2>
-      {% if song.audio_features %}
-        {% for feat in song.audio_features %}
-        <div class="feature-row">
-          <div class="feature-header">
-            <span class="feature-label">{{ feat.label }}</span>
-            <span class="feature-value">{{ feat.value_display }}</span>
-          </div>
-          <div class="feature-bar">
-            <div class="feature-bar-fill" style="width: {{ feat.pct }}%;"></div>
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <p class="text-muted text-sm">No audio features available.</p>
-      {% endif %}
-    </div>
-
-  </div>
-
-  {% if similar_songs %}
-  <div class="card mt-2">
-    <h2>Similar Songs</h2>
-    <p class="text-muted text-sm" style="margin-bottom: 1.25rem;">
-      Ranked by audio feature similarity — energy, danceability, valence, acousticness, speechiness, instrumentalness, liveness
+  {% if error_message %}
+    <div class="alert alert-error">{{ error_message }}</div>
+    <a href="{% url 'songs' %}" class="btn">← Back to Songs</a>
+  {% elif song %}
+    <p class="text-muted text-sm" style="margin-bottom: 1rem;">
+      <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
     </p>
-    <div class="similar-grid">
-      {% for s in similar_songs %}
-      <div class="similar-card">
-        <a href="{% url 'song_detail' %}?uri={{ s.uri }}" class="similar-title">{{ s.name }}</a>
-        <a href="{% url 'artist_detail' %}?uri={{ s.artist_uri }}" class="text-muted text-sm similar-artist">{{ s.artist_name }}</a>
-        {% if s.sim_pct is not None %}
-        <div class="similar-score">
-          <span class="similar-score-label">Similarity</span>
-          <span class="similar-score-value">{{ s.sim_pct }}%</span>
-        </div>
+
+    {# Microformats2: h-entry wraps the song. p-name=title, u-url=canonical URI,
+       p-author with nested h-card for the artist, p-category for genres. #}
+    <div class="h-entry">
+      <a class="u-url" href="{{ song.uri }}" hidden></a>
+
+      <h1 class="p-name" style="display:inline;margin-right:0.6rem;">{{ song.name }}</h1><button id="lyrics-open-btn" aria-label="Show lyrics" class="btn" style="vertical-align:middle;">Show Lyrics</button>
+      <p class="text-muted mt-1">
+        by <span class="p-author h-card"><a class="u-url" href="{% url 'artist_detail' %}?uri={{ song.main_artist_uri }}"><span class="p-name">{{ song.main_artist_name }}</span></a></span>
+        {% if song.album_name %}
+          &nbsp;·&nbsp;<span class="p-item">{{ song.album_name }}</span>
         {% endif %}
-        <div class="similar-features">
-          <div class="mini-feat">
-            <span class="mini-feat-label">Energy</span>
-            <div class="mini-feat-bar"><div class="mini-feat-fill" style="width: {{ s.energy_pct }}%;"></div></div>
+      </p>
+
+      <div class="two-col mt-2">
+        <!-- Left column: details + chart history -->
+        <div>
+          <div class="card section">
+            <h2>Details</h2>
+            <table>
+              <tbody>
+                {% if song.genres %}
+                  <tr>
+                    <td class="text-muted text-sm" style="width:40%">Genre</td>
+                    <td>
+                      {% for g in song.genres %}
+                        <span class="badge p-category">{{ g }}</span>
+                      {% endfor %}
+                    </td>
+                  </tr>
+                {% endif %}
+                {% if song.tempo %}
+                  <tr>
+                    <td class="text-muted text-sm">Tempo</td>
+                    <td>{{ song.tempo }} BPM</td>
+                  </tr>
+                {% endif %}
+                {% if song.duration_min %}
+                  <tr>
+                    <td class="text-muted text-sm">Duration</td>
+                    <td>{{ song.duration_min }}</td>
+                  </tr>
+                {% endif %}
+                {% if song.explicit %}
+                  <tr>
+                    <td class="text-muted text-sm">Explicit</td>
+                    <td>{{ song.explicit }}</td>
+                  </tr>
+                {% endif %}
+                {% if song.featured_artists %}
+                  <tr>
+                    <td class="text-muted text-sm">Featured</td>
+                    <td>
+                      {% for fa in song.featured_artists %}
+                        <span class="p-author h-card"><a class="u-url" href="{% url 'artist_detail' %}?uri={{ fa.uri }}"><span class="p-name">{{ fa.name }}</span></a></span>{% if not forloop.last %}, {% endif %}
+                      {% endfor %}
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
           </div>
-          <div class="mini-feat">
-            <span class="mini-feat-label">Dance</span>
-            <div class="mini-feat-bar"><div class="mini-feat-fill" style="width: {{ s.dance_pct }}%;"></div></div>
-          </div>
-          <div class="mini-feat">
-            <span class="mini-feat-label">Valence</span>
-            <div class="mini-feat-bar"><div class="mini-feat-fill" style="width: {{ s.valence_pct }}%;"></div></div>
-          </div>
+
+          {% if chart_entries %}
+            <div class="card">
+              <h2>Chart History</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Rank</th>
+                    <th>Weeks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for entry in chart_entries %}
+                    <tr>
+                      <td>{{ entry.date }}</td>
+                      <td>#{{ entry.rank }}</td>
+                      <td>{{ entry.weeks }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Right column: audio features -->
+        <div class="card">
+          <h2>Audio Features</h2>
+          {% if song.audio_features %}
+            {% for feat in song.audio_features %}
+              <div class="feature-row">
+                <div class="feature-header">
+                  <span class="feature-label">{{ feat.label }}</span>
+                  <span class="feature-value">{{ feat.value_display }}</span>
+                </div>
+                <div class="feature-bar">
+                  <div class="feature-bar-fill" style="width: {{ feat.pct }}%;"></div>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted text-sm">No audio features available.</p>
+          {% endif %}
         </div>
       </div>
-      {% endfor %}
+
+      {% if similar_songs %}
+        <div class="card mt-2">
+          <h2>Similar Songs</h2>
+          <p class="text-muted text-sm" style="margin-bottom: 1.25rem;">Ranked by audio feature similarity — energy, danceability, valence, acousticness, speechiness, instrumentalness, liveness</p>
+          <div class="similar-grid">
+            {% for s in similar_songs %}
+              <div class="similar-card">
+                <a href="{% url 'song_detail' %}?uri={{ s.uri }}" class="similar-title">{{ s.name }}</a>
+                <a href="{% url 'artist_detail' %}?uri={{ s.artist_uri }}" class="text-muted text-sm similar-artist">{{ s.artist_name }}</a>
+                {% if s.sim_pct is not None %}
+                  <div class="similar-score">
+                    <span class="similar-score-label">Similarity</span>
+                    <span class="similar-score-value">{{ s.sim_pct }}%</span>
+                  </div>
+                {% endif %}
+                <div class="similar-features">
+                  <div class="mini-feat">
+                    <span class="mini-feat-label">Energy</span>
+                    <div class="mini-feat-bar">
+                      <div class="mini-feat-fill" style="width: {{ s.energy_pct }}%;"></div>
+                    </div>
+                  </div>
+                  <div class="mini-feat">
+                    <span class="mini-feat-label">Dance</span>
+                    <div class="mini-feat-bar">
+                      <div class="mini-feat-fill" style="width: {{ s.dance_pct }}%;"></div>
+                    </div>
+                  </div>
+                  <div class="mini-feat">
+                    <span class="mini-feat-label">Valence</span>
+                    <div class="mini-feat-bar">
+                      <div class="mini-feat-fill" style="width: {{ s.valence_pct }}%;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Lyrics modal -->
+      <div id="lyrics-modal" role="dialog" aria-modal="true" aria-labelledby="lyrics-modal-title" hidden>
+        <div class="lyrics-backdrop"></div>
+        <div class="lyrics-dialog card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h2 id="lyrics-modal-title" style="margin:0;font-size:1.1rem;">🎤 {{ song.name }} - {{song.main_artist_name}}</h2>
+            <button id="lyrics-close-btn" aria-label="Close" style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:0.2rem 0.4rem;">✕</button>
+          </div>
+          <div id="lyrics-body" style="white-space:pre-wrap;max-height:60vh;overflow-y:auto;font-size:0.9rem;line-height:1.8;"></div>
+        </div>
+      </div>
+
     </div>
-  </div>
+    {# end Microformats2 h-entry #}
+
+    <style>
+    #lyrics-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;}
+    #lyrics-modal[hidden]{display:none;}
+    .lyrics-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.5);}
+    .lyrics-dialog{position:relative;width:min(560px,90vw);max-height:80vh;overflow:hidden;padding:1.5rem;}
+    </style>
+
+    <script>
+    (function(){
+      const openBtn  = document.getElementById('lyrics-open-btn');
+      const closeBtn = document.getElementById('lyrics-close-btn');
+      const modal    = document.getElementById('lyrics-modal');
+      const body     = document.getElementById('lyrics-body');
+      const LYRICS_URL = "{% url 'lyrics' %}"
+                       + "?track={{ song.name|urlencode }}"
+                       + "&artist={{ song.main_artist_name|urlencode }}";
+      let loaded = false;
+
+      function openModal() {
+        modal.hidden = false;
+        if (loaded) return;
+        body.textContent = 'Loading…';
+        fetch(LYRICS_URL)
+          .then(r => r.json())
+          .then(d => { body.textContent = d.plainLyrics || d.error || 'No lyrics found.'; loaded = true; })
+          .catch(() => { body.textContent = 'Failed to load lyrics.'; });
+      }
+      function closeModal() { modal.hidden = true; }
+
+      openBtn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+      document.querySelector('.lyrics-backdrop').addEventListener('click', closeModal);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    })();
+    </script>
+  {% else %}
+    <p class="text-muted">Song not found.</p>
+    <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>
   {% endif %}
-
-{% else %}
-  <p class="text-muted">Song not found.</p>
-  <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>
-{% endif %}
-
 {% endblock %}

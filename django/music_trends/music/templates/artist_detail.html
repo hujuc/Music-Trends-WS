@@ -1,251 +1,315 @@
-{% extends "base.html" %}
-{% block title %}{% if artist %}{{ artist.name }} — {% endif %}Music Trends{% endblock %}
+{% extends 'base.html' %}
+{% block title %}
+  {% if artist %}
+    {{ artist.name }} —
+  {% endif %}Music Trends
+{% endblock %}
 
 {% block content %}
-
-{% if error_message %}
-  <div class="alert alert-error">{{ error_message }}</div>
-
-{% elif artist %}
-
-  <p class="text-muted text-sm" style="margin-bottom: 1rem;">
-    <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
-  </p>
-
-  <h1>{{ artist.name }}</h1>
-
-  {% if artist.genres %}
-  <p class="artist-genres">
-    {% for g in artist.genres %}
-      <span class="badge badge-accent" title="Source: {{ g.source }}">{{ g.name }}</span>
-    {% endfor %}
-  </p>
-  {% endif %}
-
-  {% if enrichment %}
-  <div class="card section artist-about">
-    <div class="about-grid">
-      {% if enrichment.photo %}
-        <img class="about-photo" src="{{ enrichment.photo }}" alt="{{ artist.name }}" loading="lazy">
-      {% endif %}
-      <div class="about-body">
-        <h2>About</h2>
-        {% if enrichment.description %}
-          <p class="about-desc">{{ enrichment.description }}</p>
-        {% endif %}
-        {% if enrichment.abstract %}
-          <p class="text-sm text-muted">{{ enrichment.abstract|truncatewords:60 }}</p>
-        {% endif %}
-
-        <div class="about-facts">
-          {% if enrichment.country %}<div class="about-fact"><span class="about-key">Country</span><span class="about-val">{{ enrichment.country }}</span></div>{% endif %}
-          {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val">{{ enrichment.birth_place }}</span></div>{% endif %}
-          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val">{{ enrichment.birth_date }}</span></div>{% endif %}
-          {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val">{{ enrichment.inception }}</span></div>{% endif %}
-        </div>
-
-        <p class="about-links mt-1">
-          {% if enrichment.website %}<a href="{{ enrichment.website }}" target="_blank" rel="noopener">Official site ↗</a>{% endif %}
-          {% if enrichment.wikidata %}<a href="{{ enrichment.wikidata }}" target="_blank" rel="noopener">Wikidata ↗</a>{% endif %}
-          {% if enrichment.dbpedia %}<a href="{{ enrichment.dbpedia }}" target="_blank" rel="noopener">DBpedia ↗</a>{% endif %}
-          {% if enrichment.musicbrainz %}<a href="{{ enrichment.musicbrainz }}" target="_blank" rel="noopener">MusicBrainz ↗</a>{% endif %}
-        </p>
-        <p class="text-muted text-sm mt-1">Source: DBpedia &amp; Wikidata</p>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-  <div class="stats-grid mt-2 section">
-    <div class="stat-card">
-      <div class="stat-number">{{ artist.song_count }}</div>
-      <div class="stat-label">Songs</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-number">{{ artist.chart_entries }}</div>
-      <div class="stat-label">Chart Entries</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-number">{% if artist.best_rank != '—' %}#{{ artist.best_rank }}{% else %}—{% endif %}</div>
-      <div class="stat-label">Best Chart Rank</div>
-    </div>
-    {% if artist.avg_energy != '—' %}
-    <div class="stat-card">
-      <div class="stat-number">{{ artist.avg_energy }}</div>
-      <div class="stat-label">Avg. Energy</div>
-    </div>
-    {% endif %}
-    {% if artist.avg_danceability != '—' %}
-    <div class="stat-card">
-      <div class="stat-number">{{ artist.avg_danceability }}</div>
-      <div class="stat-label">Avg. Danceability</div>
-    </div>
-    {% endif %}
-    {% if artist.avg_valence != '—' %}
-    <div class="stat-card">
-      <div class="stat-number">{{ artist.avg_valence }}</div>
-      <div class="stat-label">Avg. Valence</div>
-    </div>
-    {% endif %}
-    <div class="stat-card">
-      <div class="stat-number">{{ artist.collaborator_count }}</div>
-      <div class="stat-label">Collaborators</div>
-    </div>
-  </div>
-
-  {% if collaborators %}
-  <div class="card section">
-    <div class="collab-headline">
-      <h2>Collaboration Network</h2>
-      <div class="view-switch" role="tablist" aria-label="Collaboration view switch">
-        <button type="button" class="view-switch-btn active" data-view="graph" aria-pressed="true">Graph</button>
-        <button type="button" class="view-switch-btn" data-view="table" aria-pressed="false">Table</button>
-      </div>
-    </div>
-    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
-      Ranked by final score = (shared songs × 2) + overlapping chart dates.
+  {% if error_message %}
+    <div class="alert alert-error">{{ error_message }}</div>
+  {% elif artist %}
+    <p class="text-muted text-sm" style="margin-bottom: 1rem;">
+      <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
     </p>
 
-    <div class="collab-panel is-visible" data-panel="graph">
-      <div class="collab-network graph-layout">
-      <div class="collab-graph-stage">
-        <svg class="collab-edges" viewBox="0 0 100 100" aria-hidden="true">
-          {% for n in collab_graph %}
-            <line x1="50" y1="50" x2="{{ n.x }}" y2="{{ n.y }}"></line>
+      {% comment %} {# RDFa: the entire artist section is annotated with schema:MusicGroup (or Person).
+      vocab sets the default vocabulary; typeof declares the RDF type;
+      resource pins the subject URI so crawlers can dereference it.
+      owl:sameAs links are expressed as <link> elements inside the block. #} {% endcomment %}
+    <div vocab="https://schema.org/" typeof="MusicGroup" resource="{{ artist.uri }}">
+      {# owl:sameAs to Wikidata / DBpedia — hidden <link> elements, no visual impact #}
+      {% if enrichment %}
+        {% if enrichment.wikidata %}
+          <link property="owl:sameAs" href="{{ enrichment.wikidata }}" />
+        {% endif %}
+        {% if enrichment.dbpedia %}
+          <link property="owl:sameAs" href="{{ enrichment.dbpedia }}" />
+        {% endif %}
+        {% if enrichment.website %}
+          <link property="url" href="{{ enrichment.website }}" />
+        {% endif %}
+      {% endif %}
+
+      <h1 property="name">{{ artist.name }}</h1>
+
+      {% if artist.genres %}
+        <p class="artist-genres">
+          {% for g in artist.genres %}
+            <span class="badge badge-accent" property="genre" title="Source: {{ g.source }}">{{ g.name }}</span>
           {% endfor %}
-        </svg>
+        </p>
+      {% endif %}
 
-        <div class="graph-center-node">{{ artist.name }}</div>
-
-        {% for n in collab_graph %}
-          <a
-            class="graph-node"
-            href="{% url 'artist_detail' %}?uri={{ n.uri }}"
-            style="--x: {{ n.x }}%; --y: {{ n.y }}%;"
-            title="{{ n.tooltip }}"
-          >
-            <span class="node-name">{{ n.name }}</span>
-            <span class="node-score">Score {{ n.score }} · Overlap {{ n.chart_overlap }}</span>
-            <span class="node-count">{{ n.shared_songs }} song{{ n.shared_songs|pluralize }}</span>
-            {% for track in n.preview_tracks %}
-              <span class="node-track">{{ track }}</span>
-            {% endfor %}
-            {% if n.more_tracks %}
-              <span class="node-track text-muted">+{{ n.more_tracks }} more</span>
+      {% if enrichment %}
+        <div class="card section artist-about">
+          <div class="about-grid">
+            {% if enrichment.photo %}
+              <img class="about-photo" property="image" src="{{ enrichment.photo }}" alt="{{ artist.name }}" loading="lazy" />
             {% endif %}
-          </a>
-        {% endfor %}
-      </div>
-    </div>
-    </div>
+            <div class="about-body">
+              <h2>About</h2>
+              {% if enrichment.description %}
+                <p class="about-desc" property="description">{{ enrichment.description }}</p>
+              {% endif %}
+              {% if enrichment.abstract %}
+                <p class="text-sm text-muted">{{ enrichment.abstract|truncatewords:60 }}</p>
+              {% endif %}
 
-    <div class="collab-panel" data-panel="table">
-      <div class="collab-network table-layout">
-        <table class="collab-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Collaborator</th>
-              <th>Shared Songs</th>
-              <th>Chart Overlap</th>
-              <th>Final Score</th>
-              <th>Songs Together</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for c in collaborators %}
-            <tr>
-              <td class="text-muted">{{ forloop.counter }}</td>
-              <td><a href="{% url 'artist_detail' %}?uri={{ c.uri }}">{{ c.name }}</a></td>
-              <td>{{ c.shared_songs }}</td>
-              <td>{{ c.chart_overlap }}</td>
-              <td>{{ c.score }}</td>
-              <td>
-                {% if c.shared_tracks %}
-                  <details class="shared-songs-details">
-                    <summary>{{ c.shared_tracks|length }} song{{ c.shared_tracks|length|pluralize }}</summary>
-                    <div class="shared-songs-list mt-1">
-                      {% for title in c.shared_tracks %}
-                        <span class="badge badge-song">{{ title }}</span>
-                      {% endfor %}
-                    </div>
-                  </details>
-                {% else %}
-                  <span class="text-muted">—</span>
+              <div class="about-facts">
+                {% if enrichment.country %}
+                  <div class="about-fact">
+                    <span class="about-key">Country</span><span class="about-val" property="foundingLocation">{{ enrichment.country }}</span>
+                  </div>
                 {% endif %}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                {% if enrichment.birth_place %}
+                  <div class="about-fact">
+                    <span class="about-key">From</span><span class="about-val" property="foundingLocation">{{ enrichment.birth_place }}</span>
+                  </div>
+                {% endif %}
+                {% if enrichment.birth_date %}
+                  <div class="about-fact">
+                    <span class="about-key">Born</span><span class="about-val" property="foundingDate">{{ enrichment.birth_date }}</span>
+                  </div>
+                {% endif %}
+                {% if enrichment.inception %}
+                  <div class="about-fact">
+                    <span class="about-key">Active since</span><span class="about-val" property="foundingDate">{{ enrichment.inception }}</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              <p class="about-links mt-1">
+                {% if enrichment.website %}
+                  <a property="url" href="{{ enrichment.website }}" target="_blank" rel="noopener">Official site ↗</a>
+                {% endif %}
+                {% if enrichment.wikidata %}
+                  <a href="{{ enrichment.wikidata }}" target="_blank" rel="noopener">Wikidata ↗</a>
+                {% endif %}
+                {% if enrichment.dbpedia %}
+                  <a href="{{ enrichment.dbpedia }}" target="_blank" rel="noopener">DBpedia ↗</a>
+                {% endif %}
+                {% if enrichment.musicbrainz %}
+                  <a property="sameAs" href="{{ enrichment.musicbrainz }}" target="_blank" rel="noopener">MusicBrainz ↗</a>
+                {% endif %}
+              </p>
+              <p class="text-muted text-sm mt-1">Source: DBpedia &amp; Wikidata</p>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="stats-grid mt-2 section">
+        <div class="stat-card">
+          <div class="stat-number">{{ artist.song_count }}</div>
+          <div class="stat-label">Songs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">{{ artist.chart_entries }}</div>
+          <div class="stat-label">Chart Entries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">
+            {% if artist.best_rank != '—' %}
+              #{{ artist.best_rank }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+          <div class="stat-label">Best Chart Rank</div>
+        </div>
+        {% if artist.avg_energy != '—' %}
+          <div class="stat-card">
+            <div class="stat-number">{{ artist.avg_energy }}</div>
+            <div class="stat-label">Avg. Energy</div>
+          </div>
+        {% endif %}
+        {% if artist.avg_danceability != '—' %}
+          <div class="stat-card">
+            <div class="stat-number">{{ artist.avg_danceability }}</div>
+            <div class="stat-label">Avg. Danceability</div>
+          </div>
+        {% endif %}
+        {% if artist.avg_valence != '—' %}
+          <div class="stat-card">
+            <div class="stat-number">{{ artist.avg_valence }}</div>
+            <div class="stat-label">Avg. Valence</div>
+          </div>
+        {% endif %}
+        <div class="stat-card">
+          <div class="stat-number">{{ artist.collaborator_count }}</div>
+          <div class="stat-label">Collaborators</div>
+        </div>
+      </div>
+
+      {% if collaborators %}
+        <div class="card section">
+          <div class="collab-headline">
+            <h2>Collaboration Network</h2>
+            <div class="view-switch" role="tablist" aria-label="Collaboration view switch">
+              <button type="button" class="view-switch-btn active" data-view="graph" aria-pressed="true">Graph</button>
+              <button type="button" class="view-switch-btn" data-view="table" aria-pressed="false">Table</button>
+            </div>
+          </div>
+          <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">Ranked by final score = (shared songs × 2) + overlapping chart dates.</p>
+
+          <div class="collab-panel is-visible" data-panel="graph">
+            <div class="collab-network graph-layout">
+              <div class="collab-graph-stage">
+                <svg class="collab-edges" viewBox="0 0 100 100" aria-hidden="true">
+                  {% for n in collab_graph %}
+                    <line x1="50" y1="50" x2="{{ n.x }}" y2="{{ n.y }}"></line>
+                  {% endfor %}
+                </svg>
+
+                <div class="graph-center-node">{{ artist.name }}</div>
+
+                {% for n in collab_graph %}
+                  <a class="graph-node" href="{% url 'artist_detail' %}?uri={{ n.uri }}" style="--x: {{ n.x }}%; --y: {{ n.y }}%;" title="{{ n.tooltip }}">
+                    <span class="node-name">{{ n.name }}</span>
+                    <span class="node-score">Score {{ n.score }} · Overlap {{ n.chart_overlap }}</span>
+                    <span class="node-count">{{ n.shared_songs }} song{{ n.shared_songs|pluralize }}</span>
+                    {% for track in n.preview_tracks %}
+                      <span class="node-track">{{ track }}</span>
+                    {% endfor %}
+                    {% if n.more_tracks %}
+                      <span class="node-track text-muted">+{{ n.more_tracks }} more</span>
+                    {% endif %}
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="collab-panel" data-panel="table">
+            <div class="collab-network table-layout">
+              <table class="collab-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Collaborator</th>
+                    <th>Shared Songs</th>
+                    <th>Chart Overlap</th>
+                    <th>Final Score</th>
+                    <th>Songs Together</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in collaborators %}
+                    <tr>
+                      <td class="text-muted">{{ forloop.counter }}</td>
+                      <td>
+                        <a href="{% url 'artist_detail' %}?uri={{ c.uri }}">{{ c.name }}</a>
+                      </td>
+                      <td>{{ c.shared_songs }}</td>
+                      <td>{{ c.chart_overlap }}</td>
+                      <td>{{ c.score }}</td>
+                      <td>
+                        {% if c.shared_tracks %}
+                          <details class="shared-songs-details">
+                            <summary>{{ c.shared_tracks|length }} song{{ c.shared_tracks|length|pluralize }}</summary>
+                            <div class="shared-songs-list mt-1">
+                              {% for title in c.shared_tracks %}
+                                <span class="badge badge-song">{{ title }}</span>
+                              {% endfor %}
+                            </div>
+                          </details>
+                        {% else %}
+                          <span class="text-muted">—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card">
+        <h2>Songs</h2>
+        {% if songs %}
+          <table>
+            <thead>
+              <tr>
+                <th>Song</th>
+                <th>Genre</th>
+                <th>Popularity</th>
+                <th>Energy</th>
+                <th>Danceability</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for song in songs %}
+                <tr>
+                  <td>
+                    <a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a>
+                  </td>
+                  <td>
+                    {% if song.genre %}
+                      <span class="badge">{{ song.genre }}</span>
+                    {% else %}
+                      <span class="text-muted">—</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if song.popularity %}
+                      {{ song.popularity }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if song.energy %}
+                      {{ song.energy }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if song.danceability %}
+                      {{ song.danceability }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p class="text-muted text-sm">No songs found for this artist.</p>
+        {% endif %}
       </div>
     </div>
-  </div>
+    {# end RDFa MusicGroup #}
+  {% else %}
+    <p class="text-muted">Artist not found.</p>
+    <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>
   {% endif %}
 
-  <div class="card">
-    <h2>Songs</h2>
-    {% if songs %}
-    <table>
-      <thead>
-        <tr>
-          <th>Song</th>
-          <th>Genre</th>
-          <th>Popularity</th>
-          <th>Energy</th>
-          <th>Danceability</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for song in songs %}
-        <tr>
-          <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
-          <td>
-            {% if song.genre %}
-              <span class="badge">{{ song.genre }}</span>
-            {% else %}
-              <span class="text-muted">—</span>
-            {% endif %}
-          </td>
-          <td>{% if song.popularity %}{{ song.popularity }}{% else %}—{% endif %}</td>
-          <td>{% if song.energy %}{{ song.energy }}{% else %}—{% endif %}</td>
-          <td>{% if song.danceability %}{{ song.danceability }}{% else %}—{% endif %}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-      <p class="text-muted text-sm">No songs found for this artist.</p>
-    {% endif %}
-  </div>
-
-{% else %}
-  <p class="text-muted">Artist not found.</p>
-  <a href="{% url 'songs' %}" class="btn mt-2">← Back to Songs</a>
-{% endif %}
-
-{% if collaborators %}
-<script>
-  (function () {
-    const buttons = document.querySelectorAll('.view-switch-btn');
-    const panels = document.querySelectorAll('.collab-panel');
-
-    function showPanel(view) {
-      panels.forEach((panel) => {
-        panel.classList.toggle('is-visible', panel.dataset.panel === view);
-      });
-      buttons.forEach((btn) => {
-        const isActive = btn.dataset.view === view;
-        btn.classList.toggle('active', isActive);
-        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-      });
-    }
-
-    buttons.forEach((btn) => {
-      btn.addEventListener('click', () => showPanel(btn.dataset.view));
-    });
-  })();
-</script>
-{% endif %}
-
+  {% if collaborators %}
+    <script>
+      ;(function () {
+        const buttons = document.querySelectorAll('.view-switch-btn')
+        const panels = document.querySelectorAll('.collab-panel')
+      
+        function showPanel(view) {
+          panels.forEach((panel) => {
+            panel.classList.toggle('is-visible', panel.dataset.panel === view)
+          })
+          buttons.forEach((btn) => {
+            const isActive = btn.dataset.view === view
+            btn.classList.toggle('active', isActive)
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false')
+          })
+        }
+      
+        buttons.forEach((btn) => {
+          btn.addEventListener('click', () => showPanel(btn.dataset.view))
+        })
+      })()
+    </script>
+  {% endif %}
 {% endblock %}
