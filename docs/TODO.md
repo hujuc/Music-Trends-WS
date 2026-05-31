@@ -8,35 +8,40 @@ Lista exaustiva de tudo o que o enunciado ([docs/ws.tp2.pdf](ws.tp2.pdf)) pede.
 
 ## 1. Objetivos / funcionalidades obrigatórias
 
-- [ ] 🟡 **Ontologia exaustiva do domínio** — descrever exaustivamente o domínio de
+- [x] ✅ **Ontologia exaustiva do domínio** — descrever exaustivamente o domínio de
   conhecimento dos dados, **indo para além dos conceitos presentes nos dados**.
   - ✅ Ontologia base em [normalizing_data/ontology.ttl](../normalizing_data/ontology.ttl)
     (classes, subclasses, domain/range, inverse/sub/equivalent/symmetric).
-  - ❌ Rever exaustividade: garantir conceitos para **além** dos dados (ex.: géneros
-    como hierarquia, álbuns, editoras/labels, países, períodos temporais, etc.).
-  - ❌ Documentar anotações (`rdfs:label`, `rdfs:comment`) em classes e propriedades.
+  - ✅ Exaustividade reforçada com conceitos para além dos dados brutos (ex.: `type:RecordLabel`,
+    `type:TimePeriod`, `type:Decade`, `type:Season`, `type:SoloArtist`, `type:BandOrGroup`,
+    `pred:hasSubGenre`, `pred:signedTo`, `pred:releasedInPeriod`).
+  - ✅ Anotações (`rdfs:label`, `rdfs:comment`) documentadas em classes e propriedades.
 
 - [ ] 🟡 **Usar a ontologia junto aos dados** — classificar automaticamente o uso dos
   dados e **otimizar a pesquisa**, feito **na GraphDB E no Protégé**.
   - ✅ Classificação automática na GraphDB (via SPIN + ruleset `rdfsplus-optimized`).
-  - ❌ **Validar a classificação/inferência no Protégé** (abrir o ficheiro de
-    integração, correr reasoner).
+  - 🟡 **Validação no Protégé preparada**: ficheiro de integração e guia explícito
+    em [docs/protege_validation.md](protege_validation.md); falta registar evidências
+    finais (screenshots/checklist) da execução manual.
   - ❌ **Otimizar a pesquisa** na app usando as classes inferidas (ex.: filtrar por
     `HitSong`, `TrendingArtist`, `ChartedSong`).
 
 - [x] ✅ **Conjunto de regras de inferência** — (a) estabelecer **novas relações**
   entre entidades; (b) implementar **classificações automáticas** que os motores de
   inferência não fazem sozinhos.
-  - ✅ Módulo [normalizing_data/spin_rules.py](../normalizing_data/spin_rules.py) com 6 regras:
+  - ✅ Módulo [normalizing_data/spin_rules.py](../normalizing_data/spin_rules.py) com 7 regras:
     `ChartedSongRule`, `HitSongRule`, `HitArtistRule`, `TrendingArtistRule`
-    (classificações), `AppearsInChartRule`, `CollaboratedWithRule` (novas relações).
-  - ⚠️ Rever se se justificam **mais** regras para enriquecer a demonstração.
+    (classificações), `LongTailSongRule` (classificação de longevidade),
+    `AppearsInChartRule`, `CollaboratedWithRule` (novas relações).
+  - ✅ Reforço demonstrativo via `LongTailSongRule` e queries em
+    [docs/semantic_demo_queries.rq](semantic_demo_queries.rq).
 
 - [ ] 🟡 **Complementar funcionalidades do sistema** — à custa da informação
   **inferida** e **enriquecida**.
   - ✅ Dados enriquecidos (DBpedia/Wikidata) expostos no detalhe do artista.
-  - ❌ Expor na UI as classes/relações inferidas (HitSong, HitArtist,
-    TrendingArtist, appearsInChart, collaboratedWith) — ainda não aparecem.
+  - ✅ Classe inferida `LongTailSong` exposta no dashboard (card, top songs e top artists).
+  - 🟡 Exposição de mais classes/relações inferidas (`HitSong`, `HitArtist`,
+    `TrendingArtist`, `appearsInChart`, `collaboratedWith`) pode ser ampliada.
 
 - [x] ✅ **Complementar os dados via DBpedia + Wikidata** — acesso programático ao
   endpoint SPARQL de **ambas** com SPARQLwrapper.
@@ -69,6 +74,9 @@ Lista exaustiva de tudo o que o enunciado ([docs/ws.tp2.pdf](ws.tp2.pdf)) pede.
 - [x] ✅ RDF (formato dos dados)
 - [x] ✅ RDFS e OWL (ontologia)
 - [ ] ❌ **Protégé** (criação e validação da ontologia) — falta usar/validar
+- [ ] 🟡 **Protégé** (criação e validação da ontologia)
+  - ✅ Guia e workflow de validação explícitos em [docs/protege_validation.md](protege_validation.md).
+  - ❌ Falta anexar evidências finais de execução manual no Protégé.
 - [x] ✅ SPIN (conjunto de inferências)
 - [x] ✅ **SPARQLwrapper** (acesso a DBpedia e Wikidata) — `enrich_artists.py`
 - [ ] ❌ **RDFa e micro-formatos** (publicação da semântica) — falta usar
@@ -88,20 +96,23 @@ Lista exaustiva de tudo o que o enunciado ([docs/ws.tp2.pdf](ws.tp2.pdf)) pede.
 - [x] ✅ Projeto Web Python/Django para **venv python3**, requisitos via **um único
   `requirements.txt`** (sem outros formatos)
 - [ ] ❌ **Ficheiro só com os factos, sem tipologia** → para a GraphDB
-  - ⚠️ Atualmente `music.ttl` inclui o esquema da ontologia; é preciso emitir um
-    ficheiro **só de factos** (sem definições de classes/propriedades).
+- [x] ✅ **Ficheiro só com os factos, sem tipologia** → para a GraphDB
+  - ✅ Gerado em [normalizing_data/facts_only.ttl](../normalizing_data/facts_only.ttl)
+    via [normalizing_data/build_delivery_files.py](../normalizing_data/build_delivery_files.py).
 - [x] ✅ **Ficheiro só com a ontologia** → para a GraphDB —
   [normalizing_data/ontology.ttl](../normalizing_data/ontology.ttl)
   - ⚠️ Confirmar que está completo e carregável isoladamente.
-- [ ] 🟡 **Ficheiro de integração ontologia + factos** → para validar no **Protégé**
-  - ⚠️ `music.ttl` (factos + esquema) serve de base, mas falta **validar no Protégé**
-    e confirmar que abre/valida sem erros.
+- [x] ✅ **Ficheiro de integração ontologia + factos** → para validar no **Protégé**
+  - ✅ Gerado em [normalizing_data/integration_protege.ttl](../normalizing_data/integration_protege.ttl)
+    via [normalizing_data/build_delivery_files.py](../normalizing_data/build_delivery_files.py).
+  - 🟡 Execução manual no Protégé pendente de evidências finais (ver guia).
 - [x] ✅ **Regras SPIN num módulo python independente**, explicitamente identificadas —
   [normalizing_data/spin_rules.py](../normalizing_data/spin_rules.py)
 - [ ] 🟡 Tudo **facilmente configurável e executável** em python3, GraphDB **e
   Protégé**, em qualquer máquina
   - ✅ `setup.sh` (python3 + GraphDB).
-  - ❌ Instruções de Protégé (que ficheiro abrir, como correr o reasoner).
+  - ✅ Instruções de Protégé (ficheiro, reasoner, validação) em
+    [docs/protege_validation.md](protege_validation.md).
 - [x] ✅ **Sem containers/Docker**
 
 ---
@@ -110,18 +121,17 @@ Lista exaustiva de tudo o que o enunciado ([docs/ws.tp2.pdf](ws.tp2.pdf)) pede.
 
 > O relatório tem importância **vital** na avaliação.
 
-- [ ] ❌ 1. Introdução ao tema
-- [ ] ❌ 2. Definição da ontologia (RDFS e OWL)
-- [ ] ❌ 3. Conjunto de inferências (SPIN)
-- [ ] ❌ 4. Novas operações sobre os dados (SPARQL)
-- [ ] ❌ 5. Uso e integração de dados da Wikidata e/ou DBpedia
-- [ ] ❌ 6. Publicação de dados semânticos via RDFa e micro-formatos
-- [ ] ❌ 7. Funcionalidades da aplicação (UI) **não presentes no TP1 ou complementares**
-- [ ] ❌ 8. Conclusões
-- [ ] ❌ 9. Configuração para executar a aplicação
+- [x] ✅ 1. Introdução ao tema
+- [x] ✅ 2. Definição da ontologia (RDFS e OWL)
+- [x] ✅ 3. Conjunto de inferências (SPIN)
+- [x] ✅ 4. Novas operações sobre os dados (SPARQL)
+- [x] ✅ 5. Uso e integração de dados da Wikidata e/ou DBpedia
+- [x] ✅ 6. Publicação de dados semânticos via RDFa e micro-formatos (estado atual e plano)
+- [x] ✅ 7. Funcionalidades da aplicação (UI) **não presentes no TP1 ou complementares**
+- [x] ✅ 8. Conclusões
+- [x] ✅ 9. Configuração para executar a aplicação
 
-> Nota: existe [docs/WS RELATORIO.pdf](WS%20RELATORIO.pdf) — confirmar se é do TP1
-> ou já o do TP2; reestruturar para estas 9 secções e esta ordem.
+> Rascunho estruturado já criado em [docs/RELATORIO_TP2.md](RELATORIO_TP2.md).
 
 ---
 
@@ -139,9 +149,7 @@ Lista exaustiva de tudo o que o enunciado ([docs/ws.tp2.pdf](ws.tp2.pdf)) pede.
 ## Resumo do que falta (prioridades)
 
 1. ❌ **RDFa/micro-formatos** nas páginas (objetivo + tecnologia + relatório §6)
-2. ❌ **Protégé** — validar ontologia/inferência + ficheiro de integração + instruções
-3. ❌ **Ficheiro só de factos** (sem tipologia) para a entrega
-4. ❌ **Expor na UI** a informação inferida + enriquecida (complementar funcionalidades)
-5. ❌ **Relatório** completo (9 secções)
-6. 🟡 Rever **exaustividade da ontologia** (ir além dos dados)
-7. 🟡 Correr **enriquecimento completo** DBpedia/Wikidata (cobertura total)
+2. 🟡 **Protégé** — falta concluir validação manual e recolher evidências
+3. 🟡 **Expor na UI** mais classes/relações inferidas (além de LongTailSong)
+4. 🟡 **Relatório** — converter rascunho final para versão de entrega (PDF)
+5. 🟡 Confirmar cobertura final de enriquecimento DBpedia/Wikidata para apresentação
