@@ -2125,12 +2125,6 @@ def billboard(request):
     return render(request, 'billboard.html', ctx)
 
 
-# ── About Data ────────────────────────────────────────────────────────────────
-
-def about_data(request):
-    return render(request, 'about_data.html', {})
-
-
 # ── Lyrics proxy (lrclib.net) ─────────────────────────────────────────────────
 def lyrics(request):
     from django.http import JsonResponse
