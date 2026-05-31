@@ -14,8 +14,7 @@
       <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
     </p>
 
-    {# Microformats2: h-entry wraps the song. p-name=title, u-url=canonical URI,
-       p-author with nested h-card for the artist, p-category for genres. #}
+    {# Microformats2: h-entry wraps the song. p-name=title, u-url=canonical URI, p-author with nested h-card for the artist, p-category for genres. #}
     <div class="h-entry">
       <a class="u-url" href="{{ song.uri }}" hidden></a>
 
@@ -168,50 +167,75 @@
         <div class="lyrics-backdrop"></div>
         <div class="lyrics-dialog card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-            <h2 id="lyrics-modal-title" style="margin:0;font-size:1.1rem;">🎤 {{ song.name }} - {{song.main_artist_name}}</h2>
+            <h2 id="lyrics-modal-title" style="margin:0;font-size:1.1rem;">🎤 {{ song.name }} - {{ song.main_artist_name }}</h2>
             <button id="lyrics-close-btn" aria-label="Close" style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:0.2rem 0.4rem;">✕</button>
           </div>
           <div id="lyrics-body" style="white-space:pre-wrap;max-height:60vh;overflow-y:auto;font-size:0.9rem;line-height:1.8;"></div>
         </div>
       </div>
-
     </div>
     {# end Microformats2 h-entry #}
 
     <style>
-    #lyrics-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;}
-    #lyrics-modal[hidden]{display:none;}
-    .lyrics-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.5);}
-    .lyrics-dialog{position:relative;width:min(560px,90vw);max-height:80vh;overflow:hidden;padding:1.5rem;}
+      #lyrics-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #lyrics-modal[hidden] {
+        display: none;
+      }
+      .lyrics-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .lyrics-dialog {
+        position: relative;
+        width: min(560px, 90vw);
+        max-height: 80vh;
+        overflow: hidden;
+        padding: 1.5rem;
+      }
     </style>
 
     <script>
-    (function(){
-      const openBtn  = document.getElementById('lyrics-open-btn');
-      const closeBtn = document.getElementById('lyrics-close-btn');
-      const modal    = document.getElementById('lyrics-modal');
-      const body     = document.getElementById('lyrics-body');
-      const LYRICS_URL = "{% url 'lyrics' %}"
-                       + "?track={{ song.name|urlencode }}"
-                       + "&artist={{ song.main_artist_name|urlencode }}";
-      let loaded = false;
-
-      function openModal() {
-        modal.hidden = false;
-        if (loaded) return;
-        body.textContent = 'Loading…';
-        fetch(LYRICS_URL)
-          .then(r => r.json())
-          .then(d => { body.textContent = d.plainLyrics || d.error || 'No lyrics found.'; loaded = true; })
-          .catch(() => { body.textContent = 'Failed to load lyrics.'; });
-      }
-      function closeModal() { modal.hidden = true; }
-
-      openBtn.addEventListener('click', openModal);
-      closeBtn.addEventListener('click', closeModal);
-      document.querySelector('.lyrics-backdrop').addEventListener('click', closeModal);
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-    })();
+      ;(function () {
+        const openBtn = document.getElementById('lyrics-open-btn')
+        const closeBtn = document.getElementById('lyrics-close-btn')
+        const modal = document.getElementById('lyrics-modal')
+        const body = document.getElementById('lyrics-body')
+        const LYRICS_URL = "{% url 'lyrics' %}" + '?track={{ song.name|urlencode }}' + '&artist={{ song.main_artist_name|urlencode }}'
+        let loaded = false
+      
+        function openModal() {
+          modal.hidden = false
+          if (loaded) return
+          body.textContent = 'Loading…'
+          fetch(LYRICS_URL)
+            .then((r) => r.json())
+            .then((d) => {
+              body.textContent = d.plainLyrics || d.error || 'No lyrics found.'
+              loaded = true
+            })
+            .catch(() => {
+              body.textContent = 'Failed to load lyrics.'
+            })
+        }
+        function closeModal() {
+          modal.hidden = true
+        }
+      
+        openBtn.addEventListener('click', openModal)
+        closeBtn.addEventListener('click', closeModal)
+        document.querySelector('.lyrics-backdrop').addEventListener('click', closeModal)
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') closeModal()
+        })
+      })()
     </script>
   {% else %}
     <p class="text-muted">Song not found.</p>

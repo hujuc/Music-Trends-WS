@@ -12,10 +12,10 @@
     <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
   </p>
 
-  {# RDFa: the entire artist section is annotated with schema:MusicGroup.
+  {% comment %} {# RDFa: the entire artist section is annotated with schema:MusicGroup.
      vocab sets the default vocabulary; typeof declares the RDF type;
      resource pins the subject URI so crawlers can dereference it.
-     owl:sameAs links are expressed as <link> elements inside the block. #}
+     owl:sameAs links are expressed as <link> elements inside the block. #} {% endcomment %}
   <div vocab="https://schema.org/" typeof="MusicGroup" resource="{{ artist.uri }}">
 
   {% if enrichment %}
