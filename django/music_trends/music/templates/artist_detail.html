@@ -38,7 +38,18 @@
         {% endif %}
 
         <div class="about-facts">
-          {% if enrichment.country %}<div class="about-fact"><span class="about-key">Country</span><span class="about-val">{{ enrichment.country }}</span></div>{% endif %}
+          {% if enrichment.country %}
+            <div class="about-fact">
+              <span class="about-key">Country</span>
+              <span class="about-val">
+                {% if enrichment.country_uri %}
+                  <a href="{{ enrichment.country_uri }}" target="_blank" rel="noopener">{{ enrichment.country }}</a>
+                {% else %}
+                  {{ enrichment.country }}
+                {% endif %}
+              </span>
+            </div>
+          {% endif %}
           {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val">{{ enrichment.birth_place }}</span></div>{% endif %}
           {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val">{{ enrichment.birth_date }}</span></div>{% endif %}
           {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val">{{ enrichment.inception }}</span></div>{% endif %}

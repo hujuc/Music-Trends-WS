@@ -156,7 +156,7 @@ def query_wikidata(names):
     PREFIX wd: <http://www.wikidata.org/entity/>
     PREFIX wdt: <http://www.wikidata.org/prop/direct/>
     PREFIX schema: <http://schema.org/>
-    SELECT ?label ?item ?viaLabel ?enwiki ?countryLabel ?genreLabel ?image
+    SELECT ?label ?item ?viaLabel ?enwiki ?country ?countryLabel ?genreLabel ?image
            ?birth ?inception ?website ?mbid ?desc WHERE {{
       VALUES ?label {{ {values} }}
       {{ {{ ?item rdfs:label ?label . BIND(1 AS ?viaLabel) }}
@@ -190,7 +190,11 @@ def query_wikidata(names):
         cand = by_item.get(item)
         if cand is None:
             cand = {
-                "item": item, "country": None, "genres": [], "image": None,
+                "item": item,
+                "country": None,
+                "country_uri": None,
+                "genres": [],
+                "image": None,
                 "birth": None, "inception": None, "website": None,
                 "mbid": None, "desc": None, "_via_label": False, "_enwiki": False,
             }
@@ -202,6 +206,10 @@ def query_wikidata(names):
         genre = r.get("genreLabel", {}).get("value")
         if genre and genre not in cand["genres"]:
             cand["genres"].append(genre)
+        if not cand["country_uri"]:
+            country_uri = r.get("country", {}).get("value")
+            if country_uri:
+                cand["country_uri"] = country_uri
         for field, key in (("country", "countryLabel"), ("image", "image"),
                            ("birth", "birth"), ("inception", "inception"),
                            ("website", "website"), ("mbid", "mbid"), ("desc", "desc")):
@@ -299,8 +307,19 @@ def add_triples(graph, artist_uri, wd, db):
         graph.add((a, OWL.sameAs, URIRef(db["resource"])))
 
     # Wikidata (mais rico): pais, genero, imagem, sitio, MusicBrainz, descricao.
-    if wd.get("country"):
-        graph.add((a, PRED.originCountry, Literal(wd["country"])))
+    country_uri = wd.get("country_uri")
+    country_label = wd.get("country")
+    if country_uri:
+        country = URIRef(country_uri)
+        graph.add((a, PRED.originCountry, country))
+        graph.add((country, RDF.type, TYPE.Country))
+        if country_label:
+            graph.add((country, RDFS.label, Literal(country_label, lang="en")))
+            graph.add((a, PRED.originCountryLabel, Literal(country_label)))
+    elif country_label:
+        # Backward-compatible fallback when cache has old entries without URI.
+        graph.add((a, PRED.originCountryLabel, Literal(country_label)))
+        graph.add((a, PRED.originCountry, Literal(country_label)))
     genres = wd.get("genres") or []
     if isinstance(genres, str):
         genres = [genres]
@@ -337,6 +356,8 @@ def build_graph(results, artists):
     g = Graph()
     g.bind("music", BASE)
     g.bind("pred", PRED)
+    g.bind("type", TYPE)
+    g.bind("rdfs", RDFS)
     g.bind("owl", OWL)
     enriched = 0
     for name, data in results.items():

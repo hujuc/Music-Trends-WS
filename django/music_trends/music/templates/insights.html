@@ -5,6 +5,75 @@
 <h1>Insights</h1>
 <p class="text-muted text-sm section">Creative analytics derived from the dataset.</p>
 
+<div class="two-col section">
+  <div class="card">
+    <h2>Top Countries by Charted Songs</h2>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      Counts distinct songs that appeared in charts, grouped by artist country of origin.
+    </p>
+    {% if insights.country_charted_songs %}
+    <table>
+      <thead>
+        <tr><th>#</th><th>Country</th><th>Charted Songs</th></tr>
+      </thead>
+      <tbody>
+        {% for country in insights.country_charted_songs %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td>
+            {% if country.uri and country.uri != '—' %}
+              <a href="{% url 'country_detail' %}?uri={{ country.uri }}">{{ country.label }}</a>
+            {% else %}
+              {{ country.label }}
+            {% endif %}
+          </td>
+          <td>{{ country.count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No country chart data available.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Average Popularity by Artist Country</h2>
+    <p class="text-muted text-sm mt-1" style="margin-bottom: 1rem;">
+      Averages Spotify popularity for songs by artists from each country.
+    </p>
+    {% if insights.country_avg_popularity %}
+    <table>
+      <thead>
+        <tr><th>#</th><th>Country</th><th>Avg Popularity</th></tr>
+      </thead>
+      <tbody>
+        {% for country in insights.country_avg_popularity %}
+        <tr>
+          <td class="text-muted">{{ forloop.counter }}</td>
+          <td>
+            {% if country.uri and country.uri != '—' %}
+              <a href="{% url 'country_detail' %}?uri={{ country.uri }}">{{ country.label }}</a>
+            {% else %}
+              {{ country.label }}
+            {% endif %}
+          </td>
+          <td>{{ country.avg_popularity }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="text-muted text-sm">No country popularity data available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<p class="text-muted text-sm" style="margin-bottom: 1rem;">
+  Methodology note: country is enriched from Wikidata. Some artists may be missing a country,
+  and ambiguous acts can affect aggregated country-level metrics.
+</p>
+
 {% if error_message %}
   <div class="alert alert-error">{{ error_message }}</div>
 {% endif %}

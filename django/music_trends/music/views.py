@@ -822,13 +822,30 @@ def artist_detail(request):
         # loaded into GraphDB. owl:sameAs uses the full IRI to avoid prefix deps.
         try:
             enrich_rows = run_select(f"""
-                SELECT ?country ?birthPlace ?birthDate ?inception ?website
-                       ?image ?thumbnail ?description ?abstract ?mbid
+                                SELECT (SAMPLE(?countryDisplay) AS ?country) (SAMPLE(?countryNode) AS ?countryUri)
+                                             (SAMPLE(?birthPlace) AS ?birthPlace) (SAMPLE(?birthDate) AS ?birthDate)
+                                             (SAMPLE(?inception) AS ?inception) (SAMPLE(?website) AS ?website)
+                                             (SAMPLE(?image) AS ?image) (SAMPLE(?thumbnail) AS ?thumbnail)
+                                             (SAMPLE(?description) AS ?description) (SAMPLE(?abstract) AS ?abstract)
+                                             (SAMPLE(?mbid) AS ?mbid)
                        (GROUP_CONCAT(DISTINCT ?genre; separator="||") AS ?genres)
                        (GROUP_CONCAT(DISTINCT ?same; separator="||") AS ?sameAs)
                 WHERE {{
                   BIND(<{uri}> AS ?artist)
-                  OPTIONAL {{ ?artist pred:originCountry ?country }}
+                                    OPTIONAL {{
+                                        ?artist pred:originCountry ?countryNode .
+                                        FILTER(isIRI(?countryNode))
+                                        OPTIONAL {{
+                                            ?countryNode <http://www.w3.org/2000/01/rdf-schema#label> ?countryNodeLabel .
+                                            FILTER(lang(?countryNodeLabel) = "en" || lang(?countryNodeLabel) = "")
+                                        }}
+                                    }}
+                                    OPTIONAL {{
+                                        ?artist pred:originCountry ?countryLiteral .
+                                        FILTER(!isIRI(?countryLiteral))
+                                    }}
+                                    OPTIONAL {{ ?artist pred:originCountryLabel ?countryLegacyLabel }}
+                                    BIND(COALESCE(?countryNodeLabel, ?countryLegacyLabel, ?countryLiteral) AS ?countryDisplay)
                   OPTIONAL {{ ?artist pred:birthPlace ?birthPlace }}
                   OPTIONAL {{ ?artist pred:birthDate ?birthDate }}
                   OPTIONAL {{ ?artist pred:inceptionDate ?inception }}
@@ -841,8 +858,6 @@ def artist_detail(request):
                   OPTIONAL {{ ?artist pred:externalGenre ?genre }}
                   OPTIONAL {{ ?artist <http://www.w3.org/2002/07/owl#sameAs> ?same }}
                 }}
-                GROUP BY ?country ?birthPlace ?birthDate ?inception ?website
-                         ?image ?thumbnail ?description ?abstract ?mbid
             """)
             if enrich_rows:
                 row = enrich_rows[0]
@@ -858,6 +873,7 @@ def artist_detail(request):
                 enrichment = {
                     'photo': photo if photo and photo != '—' else None,
                     'country': _val(row, 'country', None),
+                    'country_uri': _val(row, 'countryUri', None),
                     'birth_place': _val(row, 'birthPlace', None),
                     'birth_date': _val(row, 'birthDate', None),
                     'inception': _val(row, 'inception', None),
@@ -1641,30 +1657,30 @@ def insights(request):
     })
 
     ctx['insights']['hidden_gems'] = safe_query("""
-                SELECT ?song ?songName ?mainArtist ?artistName ?energy ?danceability ?chartCount
-                WHERE {
-                    {
-                        SELECT ?song (COUNT(DISTINCT ?entry) AS ?chartCount)
-                        WHERE {
-                            ?song a type:Song ;
-                                        pred:energy ?energy ;
-                                        pred:danceability ?danceability .
-                            FILTER(?energy >= 0.75 && ?danceability >= 0.75)
-                            OPTIONAL {
-                                ?entry a type:ChartEntry ;
-                                             pred:song ?song .
-                            }
-                        }
-                        GROUP BY ?song
-                        HAVING(COUNT(DISTINCT ?entry) <= 2)
-                    }
-                    ?song pred:name ?songName ;
-                                pred:mainArtist ?mainArtist ;
-                                pred:energy ?energy ;
-                                pred:danceability ?danceability .
-                    ?mainArtist pred:name ?artistName .
-                }
-                ORDER BY ASC(?chartCount) DESC(?energy) DESC(?danceability)
+        SELECT ?song ?songName ?mainArtist ?artistName ?energy ?danceability ?chartCount
+        WHERE {
+          {
+            SELECT ?song (COUNT(DISTINCT ?entry) AS ?chartCount)
+            WHERE {
+              ?song a type:Song ;
+                    pred:energy ?energy ;
+                    pred:danceability ?danceability .
+              FILTER(?energy >= 0.75 && ?danceability >= 0.75)
+              OPTIONAL {
+                ?entry a type:ChartEntry ;
+                       pred:song ?song .
+              }
+            }
+            GROUP BY ?song
+            HAVING(COUNT(DISTINCT ?entry) <= 2)
+          }
+          ?song pred:name ?songName ;
+                pred:mainArtist ?mainArtist ;
+                pred:energy ?energy ;
+                pred:danceability ?danceability .
+          ?mainArtist pred:name ?artistName .
+        }
+        ORDER BY ASC(?chartCount) DESC(?energy) DESC(?danceability)
         LIMIT 30
     """, lambda r: {
         'uri': _val(r, 'song'),
@@ -1673,7 +1689,7 @@ def insights(request):
         'artist': _clean_artist_label(_val(r, 'artistName')),
         'energy': _safe_float(_val(r, 'energy')),
         'danceability': _safe_float(_val(r, 'danceability')),
-                'chart_count': _safe_int(_val(r, 'chartCount')),
+        'chart_count': _safe_int(_val(r, 'chartCount')),
     })
 
     try:
@@ -1692,8 +1708,7 @@ def insights(request):
         """)
     except SparqlClientError:
         versatile_raw = []
-    
-    # Post-process to count unique genres per artist (with split handling)
+
     versatile_by_artist = {}
     for r in versatile_raw:
         artist_uri = _val(r, 'artist')
@@ -1707,11 +1722,14 @@ def insights(request):
         if genre_str:
             for genre in _split_genres(genre_str):
                 versatile_by_artist[artist_uri]['genres'].add(genre)
-    
+
     ctx['insights']['versatile'] = sorted(
-        [{'uri': v['uri'], 'name': v['name'], 'genre_count': len(v['genres'])} for v in versatile_by_artist.values()],
+        [
+            {'uri': v['uri'], 'name': v['name'], 'genre_count': len(v['genres'])}
+            for v in versatile_by_artist.values()
+        ],
         key=lambda x: x['genre_count'],
-        reverse=True
+        reverse=True,
     )[:20]
 
     ctx['insights']['resilient'] = safe_query("""
@@ -1770,7 +1788,185 @@ def insights(request):
         'collabs': _val(r, 'collabs'),
     })
 
+    ctx['insights']['country_charted_songs'] = safe_query("""
+        SELECT ?country (COALESCE(?countryName, ?legacyName, REPLACE(STR(?country), "^.*/", "")) AS ?countryLabel)
+               (COUNT(DISTINCT ?song) AS ?numSongs)
+        WHERE {
+          ?song a type:Song ;
+                pred:mainArtist ?artist .
+          {
+            ?song pred:hasChartEntry ?entry .
+          }
+          UNION
+          {
+            ?entry a type:ChartEntry ;
+                   pred:song ?song .
+          }
+          ?artist pred:originCountry ?country .
+          FILTER(isIRI(?country))
+          OPTIONAL {
+            ?country <http://www.w3.org/2000/01/rdf-schema#label> ?countryName .
+            FILTER(lang(?countryName) = "en" || lang(?countryName) = "")
+          }
+          OPTIONAL { ?artist pred:originCountryLabel ?legacyName . }
+        }
+        GROUP BY ?country ?countryName ?legacyName
+        ORDER BY DESC(?numSongs)
+        LIMIT 12
+    """, lambda r: {
+        'uri': _val(r, 'country'),
+        'label': _val(r, 'countryLabel'),
+        'count': _safe_int(_val(r, 'numSongs')),
+    })
+
+    ctx['insights']['country_avg_popularity'] = safe_query("""
+        SELECT ?country (COALESCE(?countryName, ?legacyName, REPLACE(STR(?country), "^.*/", "")) AS ?countryLabel)
+               (AVG(?popularity) AS ?avgPopularity)
+        WHERE {
+          ?song a type:Song ;
+                pred:mainArtist ?artist ;
+                pred:popularity ?popularity .
+          ?artist pred:originCountry ?country .
+          FILTER(isIRI(?country))
+          OPTIONAL {
+            ?country <http://www.w3.org/2000/01/rdf-schema#label> ?countryName .
+            FILTER(lang(?countryName) = "en" || lang(?countryName) = "")
+          }
+          OPTIONAL { ?artist pred:originCountryLabel ?legacyName . }
+        }
+        GROUP BY ?country ?countryName ?legacyName
+        ORDER BY DESC(?avgPopularity)
+        LIMIT 12
+    """, lambda r: {
+        'uri': _val(r, 'country'),
+        'label': _val(r, 'countryLabel'),
+        'avg_popularity': _safe_float(_val(r, 'avgPopularity'), 2),
+    })
+
     return render(request, 'insights.html', ctx)
+
+
+def country_detail(request):
+    uri = request.GET.get('uri', '').strip()
+    if not uri.startswith('http://www.wikidata.org/entity/'):
+        return redirect('insights')
+
+    ctx = {
+        'country': {
+            'uri': uri,
+            'label': 'Unknown Country',
+            'artists': 0,
+            'songs': 0,
+            'avg_popularity': '—',
+        },
+        'top_artists': [],
+        'top_songs': [],
+    }
+
+    try:
+        label_rows = run_select(f"""
+            SELECT (COALESCE(?countryName, REPLACE(STR(?country), "^.*/", "")) AS ?countryLabel)
+            WHERE {{
+              BIND(<{uri}> AS ?country)
+              OPTIONAL {{
+                ?country <http://www.w3.org/2000/01/rdf-schema#label> ?countryName .
+                FILTER(lang(?countryName) = "en" || lang(?countryName) = "")
+              }}
+            }}
+            LIMIT 1
+        """)
+        if label_rows:
+            ctx['country']['label'] = _val(label_rows[0], 'countryLabel', ctx['country']['label'])
+
+        stat_rows = run_select(f"""
+            SELECT (COUNT(DISTINCT ?artist) AS ?artists)
+                   (COUNT(DISTINCT ?song) AS ?songs)
+                   (AVG(?popularity) AS ?avgPopularity)
+            WHERE {{
+              BIND(<{uri}> AS ?country)
+              ?artist pred:originCountry ?country .
+              OPTIONAL {{
+                ?song a type:Song ;
+                      pred:mainArtist ?artist ;
+                      pred:popularity ?popularity .
+              }}
+            }}
+        """)
+        if stat_rows:
+            row = stat_rows[0]
+            ctx['country']['artists'] = _safe_int(_val(row, 'artists'))
+            ctx['country']['songs'] = _safe_int(_val(row, 'songs'))
+            avg_pop = _val(row, 'avgPopularity', None)
+            ctx['country']['avg_popularity'] = _safe_float(avg_pop, 2) if avg_pop and avg_pop != '—' else '—'
+
+        artist_rows = run_select(f"""
+            SELECT ?artist ?artistName
+                   (COUNT(DISTINCT ?song) AS ?songs)
+                   (COUNT(DISTINCT ?entry) AS ?chartEntries)
+            WHERE {{
+              BIND(<{uri}> AS ?country)
+              ?artist pred:originCountry ?country ;
+                      pred:name ?artistName .
+              OPTIONAL {{
+                ?song a type:Song ;
+                      pred:mainArtist ?artist .
+                OPTIONAL {{
+                  ?entry a type:ChartEntry ;
+                         pred:song ?song .
+                }}
+              }}
+            }}
+            GROUP BY ?artist ?artistName
+            ORDER BY DESC(?chartEntries) DESC(?songs)
+            LIMIT 20
+        """)
+        ctx['top_artists'] = [
+            {
+                'uri': _val(r, 'artist'),
+                'name': _clean_artist_label(_val(r, 'artistName')),
+                'songs': _safe_int(_val(r, 'songs')),
+                'chart_entries': _safe_int(_val(r, 'chartEntries')),
+            }
+            for r in artist_rows
+        ]
+
+        song_rows = run_select(f"""
+                SELECT (SAMPLE(?song) AS ?song) ?songName ?artist ?artistName
+                   (SAMPLE(?popularityRaw) AS ?popularity)
+                   (COUNT(DISTINCT ?entry) AS ?chartEntries)
+                WHERE {{
+                  BIND(<{uri}> AS ?country)
+                  ?artist pred:originCountry ?country ;
+                      pred:name ?artistName .
+                  ?song a type:Song ;
+                    pred:mainArtist ?artist ;
+                    pred:name ?songName .
+                  OPTIONAL {{ ?song pred:popularity ?popularityRaw . }}
+                  OPTIONAL {{
+                ?entry a type:ChartEntry ;
+                       pred:song ?song .
+                  }}
+                }}
+                GROUP BY ?songName ?artist ?artistName
+                ORDER BY DESC(?popularity) DESC(?chartEntries) ?songName
+                LIMIT 25
+            """)
+        ctx['top_songs'] = [
+            {
+                'uri': _val(r, 'song'),
+                'name': _val(r, 'songName'),
+                'artist_uri': _val(r, 'artist'),
+                'artist_name': _clean_artist_label(_val(r, 'artistName')),
+                'popularity': _safe_float(_val(r, 'popularity'), 2),
+                'chart_entries': _safe_int(_val(r, 'chartEntries')),
+            }
+            for r in song_rows
+        ]
+
+    except SparqlClientError as exc:
+        ctx['error_message'] = str(exc)
+
+    return render(request, 'country_detail.html', ctx)
 
 
 # ── Billboard ─────────────────────────────────────────────────────────────────
