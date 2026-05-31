@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% block title %}{% if artist %}{{ artist.name }} — {% endif %}Music Trends{% endblock %}
 
 {% block content %}
@@ -12,12 +12,24 @@
     <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
   </p>
 
-  <h1>{{ artist.name }}</h1>
+  {# RDFa: the entire artist section is annotated with schema:MusicGroup.
+     vocab sets the default vocabulary; typeof declares the RDF type;
+     resource pins the subject URI so crawlers can dereference it.
+     owl:sameAs links are expressed as <link> elements inside the block. #}
+  <div vocab="https://schema.org/" typeof="MusicGroup" resource="{{ artist.uri }}">
+
+  {% if enrichment %}
+    {% if enrichment.wikidata %}<link property="owl:sameAs" href="{{ enrichment.wikidata }}">{% endif %}
+    {% if enrichment.dbpedia %}<link property="owl:sameAs" href="{{ enrichment.dbpedia }}">{% endif %}
+    {% if enrichment.website %}<link property="url" href="{{ enrichment.website }}">{% endif %}
+  {% endif %}
+
+  <h1 property="name">{{ artist.name }}</h1>
 
   {% if artist.genres %}
   <p class="artist-genres">
     {% for g in artist.genres %}
-      <span class="badge badge-accent" title="Source: {{ g.source }}">{{ g.name }}</span>
+      <span class="badge badge-accent" property="genre" title="Source: {{ g.source }}">{{ g.name }}</span>
     {% endfor %}
   </p>
   {% endif %}
@@ -26,7 +38,7 @@
   <div class="card section artist-about">
     <div class="about-grid">
       {% if enrichment.photo %}
-        <img class="about-photo" src="{{ enrichment.photo }}" alt="{{ artist.name }}" loading="lazy">
+        <img class="about-photo" property="image" src="{{ enrichment.photo }}" alt="{{ artist.name }}" loading="lazy">
       {% endif %}
       <div class="about-body">
         <h2>About</h2>
@@ -34,7 +46,7 @@
           <p class="about-desc">{{ enrichment.abstract|truncatewords:70 }}</p>
           <p class="text-sm text-muted">Text source: DBpedia abstract.</p>
         {% elif enrichment.description %}
-          <p class="about-desc">{{ enrichment.description }}</p>
+          <p class="about-desc" property="description">{{ enrichment.description }}</p>
           <p class="text-sm text-muted">Text source: Wikidata description (fallback).</p>
         {% endif %}
 
@@ -42,7 +54,7 @@
           {% if enrichment.country %}
             <div class="about-fact">
               <span class="about-key">Country</span>
-              <span class="about-val">
+              <span class="about-val" property="foundingLocation">
                 {% if enrichment.country_uri %}
                   <a href="{{ enrichment.country_uri }}" target="_blank" rel="noopener">{{ enrichment.country }}</a>
                 {% else %}
@@ -51,16 +63,16 @@
               </span>
             </div>
           {% endif %}
-          {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val">{{ enrichment.birth_place }}</span></div>{% endif %}
-          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val">{{ enrichment.birth_date }}</span></div>{% endif %}
-          {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val">{{ enrichment.inception }}</span></div>{% endif %}
+          {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val" property="foundingLocation">{{ enrichment.birth_place }}</span></div>{% endif %}
+          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val" property="foundingDate">{{ enrichment.birth_date }}</span></div>{% endif %}
+          {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val" property="foundingDate">{{ enrichment.inception }}</span></div>{% endif %}
         </div>
 
         <p class="about-links mt-1">
-          {% if enrichment.website %}<a href="{{ enrichment.website }}" target="_blank" rel="noopener">Official site ↗</a>{% endif %}
+          {% if enrichment.website %}<a property="url" href="{{ enrichment.website }}" target="_blank" rel="noopener">Official site ↗</a>{% endif %}
           {% if enrichment.wikidata %}<a href="{{ enrichment.wikidata }}" target="_blank" rel="noopener">Wikidata ↗</a>{% endif %}
           {% if enrichment.dbpedia %}<a href="{{ enrichment.dbpedia }}" target="_blank" rel="noopener">DBpedia ↗</a>{% endif %}
-          {% if enrichment.musicbrainz %}<a href="{{ enrichment.musicbrainz }}" target="_blank" rel="noopener">MusicBrainz ↗</a>{% endif %}
+          {% if enrichment.musicbrainz %}<a property="sameAs" href="{{ enrichment.musicbrainz }}" target="_blank" rel="noopener">MusicBrainz ↗</a>{% endif %}
         </p>
         <p class="text-muted text-sm mt-1">Structured data: Wikidata. Biographical text: DBpedia.</p>
       </div>
@@ -230,6 +242,8 @@
       <p class="text-muted text-sm">No songs found for this artist.</p>
     {% endif %}
   </div>
+
+  </div>{# end RDFa MusicGroup #}
 
 {% else %}
   <p class="text-muted">Artist not found.</p>

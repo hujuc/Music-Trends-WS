@@ -3,8 +3,8 @@ certifi==2026.5.20
 charset-normalizer==3.4.7
 Django==5.2.13
 idna==3.17
-numpy==2.4.6
-pandas==3.0.3
+numpy==2.2.6
+pandas==2.3.3
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 RapidFuzz==3.14.5
