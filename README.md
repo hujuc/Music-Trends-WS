@@ -99,6 +99,30 @@ The app works without extra variables if you use the default endpoint. Optionall
 The loader also reads `GRAPHDB_URL` (default `http://localhost:7200`) and
 `REPOSITORY` (default `music`).
 
+## TP2 Delivery Files and Protégé Validation
+
+Generate the delivery artifacts required by TP2:
+
+```bash
+cd normalizing_data
+python build_delivery_files.py
+```
+
+This command produces:
+
+- `normalizing_data/facts_only.ttl` — facts only (without ontology schema/type declarations)
+- `normalizing_data/integration_protege.ttl` — ontology + facts (+ enrichment and SPIN RDF when available)
+
+To validate in Protégé:
+
+1. Open `normalizing_data/integration_protege.ttl`.
+2. Run a reasoner (`HermiT` or `ELK`) and confirm ontology consistency.
+3. Check class/property hierarchy and SPIN rule resources.
+
+Detailed steps: `docs/protege_validation.md`.
+
+TP2 report draft with the 9 required sections: `docs/RELATORIO_TP2.md`.
+
 ## Semantic Layer
 
 ### Ontology and Validation Artifacts

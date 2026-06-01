@@ -7,198 +7,373 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 
-music:MusicOntology a owl:Ontology .
+music:MusicOntology a owl:Ontology ;
+    rdfs:label "Music Trends Ontology"@en ;
+    rdfs:comment "Ontology for chart dynamics, artists, songs, enrichment, and trend inferences."@en .
 
-type:Song a owl:Class .
+# Core classes
+
+type:Song a owl:Class ;
+    rdfs:label "Song"@en ;
+    rdfs:comment "A musical track represented in the system."@en .
+
 type:ChartedSong a owl:Class ;
-    rdfs:subClassOf type:Song .
+    rdfs:subClassOf type:Song ;
+    rdfs:label "Charted Song"@en ;
+    rdfs:comment "Song that appears in at least one chart entry."@en .
 
 type:HitSong a owl:Class ;
-    rdfs:subClassOf type:ChartedSong .
+    rdfs:subClassOf type:ChartedSong ;
+    rdfs:label "Hit Song"@en ;
+    rdfs:comment "Charted song that reached top positions according to inference rules."@en .
 
 type:LongTailSong a owl:Class ;
-    rdfs:subClassOf type:ChartedSong .
+    rdfs:subClassOf type:ChartedSong ;
+    rdfs:label "Long-tail Song"@en ;
+    rdfs:comment "Song with long persistence on charts (high max weeks on chart)."@en .
 
-type:Artist a owl:Class .
+type:Artist a owl:Class ;
+    rdfs:label "Artist"@en ;
+    rdfs:comment "A music performer (solo act or group)."@en .
+
+type:SoloArtist a owl:Class ;
+    rdfs:subClassOf type:Artist ;
+    rdfs:label "Solo Artist"@en ;
+    rdfs:comment "Artist represented as an individual performer."@en .
+
+type:BandOrGroup a owl:Class ;
+    rdfs:subClassOf type:Artist ;
+    rdfs:label "Band or Group"@en ;
+    rdfs:comment "Artist represented as a collective entity."@en .
+
 type:HitArtist a owl:Class ;
-    rdfs:subClassOf type:Artist .
+    rdfs:subClassOf type:Artist ;
+    rdfs:label "Hit Artist"@en ;
+    rdfs:comment "Artist linked to at least one inferred hit song."@en .
 
 type:TrendingArtist a owl:Class ;
-    rdfs:subClassOf type:Artist .
+    rdfs:subClassOf type:Artist ;
+    rdfs:label "Trending Artist"@en ;
+    rdfs:comment "Artist with recent top-chart performance according to inference rules."@en .
 
-type:Genre a owl:Class .
-type:Chart a owl:Class .
-type:Country a owl:Class .
-type:Album a owl:Class .
+type:Genre a owl:Class ;
+    rdfs:label "Genre"@en ;
+    rdfs:comment "Musical genre classification."@en .
+
+type:Chart a owl:Class ;
+    rdfs:label "Chart"@en ;
+    rdfs:comment "A chart source where songs are ranked over time."@en .
+
+type:Country a owl:Class ;
+    rdfs:label "Country"@en ;
+    rdfs:comment "Country resource used for artist origin."@en .
+
+type:Album a owl:Class ;
+    rdfs:label "Album"@en ;
+    rdfs:comment "Album containing one or more songs."@en .
+
 type:ChartEntry a owl:Class ;
-    rdfs:subClassOf prov:Entity .
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Chart Entry"@en ;
+    rdfs:comment "A dated observation of a song's position in a chart."@en .
+
+type:RecordLabel a owl:Class ;
+    rdfs:label "Record Label"@en ;
+    rdfs:comment "Music company associated with artist releases."@en .
+
+type:TimePeriod a owl:Class ;
+    rdfs:label "Time Period"@en ;
+    rdfs:comment "Temporal interval used for trend analysis beyond raw dates."@en .
+
+type:Decade a owl:Class ;
+    rdfs:subClassOf type:TimePeriod ;
+    rdfs:label "Decade"@en ;
+    rdfs:comment "Ten-year period used for historical grouping."@en .
+
+type:Season a owl:Class ;
+    rdfs:subClassOf type:TimePeriod ;
+    rdfs:label "Season"@en ;
+    rdfs:comment "Seasonal period (winter/spring/summer/autumn) for temporal analysis."@en .
 
 type:Song owl:disjointWith type:ChartEntry .
+
+# Object properties
 
 pred:performer a owl:ObjectProperty ;
     rdfs:domain type:Song ;
     rdfs:range type:Artist ;
-    owl:inverseOf pred:performed .
+    owl:inverseOf pred:performed ;
+    rdfs:label "performer"@en ;
+    rdfs:comment "Relates a song to an artist who performs it."@en .
 
 pred:performed a owl:ObjectProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range type:Song .
+    rdfs:range type:Song ;
+    rdfs:label "performed"@en ;
+    rdfs:comment "Inverse relation from artist to performed song."@en .
 
 pred:mainArtist a owl:ObjectProperty ;
     rdfs:domain type:Song ;
     rdfs:range type:Artist ;
-    rdfs:subPropertyOf pred:performer .
+    rdfs:subPropertyOf pred:performer ;
+    rdfs:label "main artist"@en ;
+    rdfs:comment "Main credited artist for a song."@en .
 
 pred:featuredArtist a owl:ObjectProperty ;
     rdfs:domain type:Song ;
     rdfs:range type:Artist ;
-    rdfs:subPropertyOf pred:performer .
+    rdfs:subPropertyOf pred:performer ;
+    rdfs:label "featured artist"@en ;
+    rdfs:comment "Featured artist for a song."@en .
 
 pred:song a owl:ObjectProperty ;
     rdfs:domain type:ChartEntry ;
-    rdfs:range type:Song .
+    rdfs:range type:Song ;
+    rdfs:label "song"@en ;
+    rdfs:comment "Links a chart entry to its song."@en .
 
 pred:entrySong a owl:ObjectProperty ;
     rdfs:domain type:ChartEntry ;
     rdfs:range type:Song ;
-    owl:equivalentProperty pred:song .
+    owl:equivalentProperty pred:song ;
+    rdfs:label "entry song"@en ;
+    rdfs:comment "Equivalent alias for pred:song."@en .
 
 pred:hasChartEntry a owl:ObjectProperty ;
     rdfs:domain type:Song ;
     rdfs:range type:ChartEntry ;
-    owl:inverseOf pred:song .
+    owl:inverseOf pred:song ;
+    rdfs:label "has chart entry"@en ;
+    rdfs:comment "Inverse relation from song to chart entries."@en .
 
 pred:inChart a owl:ObjectProperty ;
     rdfs:domain type:ChartEntry ;
-    rdfs:range type:Chart .
+    rdfs:range type:Chart ;
+    rdfs:label "in chart"@en ;
+    rdfs:comment "Relates a chart entry to the chart where it appears."@en .
 
 pred:appearsInChart a owl:ObjectProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range type:Chart .
+    rdfs:range type:Chart ;
+    rdfs:label "appears in chart"@en ;
+    rdfs:comment "Derived relation between artist and chart."@en .
 
-# Inferida pela regra SPIN CollaboratedWithRule (ver spin_rules.py).
 pred:collaboratedWith a owl:ObjectProperty , owl:SymmetricProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range type:Artist .
+    rdfs:range type:Artist ;
+    rdfs:label "collaborated with"@en ;
+    rdfs:comment "Symmetric relation between artists who share songs."@en .
 
 pred:hasGenre a owl:ObjectProperty ;
     rdfs:domain type:Song ;
-    rdfs:range type:Genre .
+    rdfs:range type:Genre ;
+    rdfs:label "has genre"@en ;
+    rdfs:comment "Relates song to genre resources."@en .
+
+pred:hasSubGenre a owl:ObjectProperty ;
+    rdfs:domain type:Genre ;
+    rdfs:range type:Genre ;
+    rdfs:label "has subgenre"@en ;
+    rdfs:comment "Hierarchical relation between genres."@en .
 
 pred:album a owl:ObjectProperty ;
     rdfs:domain type:Song ;
-    rdfs:range type:Album .
+    rdfs:range type:Album ;
+    rdfs:label "album"@en ;
+    rdfs:comment "Relates a song to its album."@en .
+
+pred:originCountry a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range type:Country ;
+    rdfs:label "origin country"@en ;
+    rdfs:comment "Relates an artist to a country resource for origin."@en .
+
+pred:image a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:label "image"@en ;
+    rdfs:comment "Image URL of the artist from external enrichment."@en .
+
+pred:thumbnail a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:label "thumbnail"@en ;
+    rdfs:comment "Thumbnail image URL of the artist from external enrichment."@en .
+
+pred:website a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:label "website"@en ;
+    rdfs:comment "Official website URL of the artist."@en .
+
+pred:signedTo a owl:ObjectProperty ;
+    rdfs:domain type:Artist ;
+    rdfs:range type:RecordLabel ;
+    rdfs:label "signed to"@en ;
+    rdfs:comment "Relates an artist to a record label."@en .
+
+pred:releasedInPeriod a owl:ObjectProperty ;
+    rdfs:domain type:Song ;
+    rdfs:range type:TimePeriod ;
+    rdfs:label "released in period"@en ;
+    rdfs:comment "Relates song to a higher-level time period for analytics."@en .
+
+# Datatype properties
 
 pred:name a owl:DatatypeProperty ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "name"@en ;
+    rdfs:comment "Human-readable name/title."@en .
 
 pred:rank a owl:DatatypeProperty ;
     rdfs:domain type:ChartEntry ;
-    rdfs:range xsd:integer .
+    rdfs:range xsd:integer ;
+    rdfs:label "rank"@en ;
+    rdfs:comment "Position of a song in a chart entry."@en .
 
 pred:weeks a owl:DatatypeProperty ;
     rdfs:domain type:ChartEntry ;
-    rdfs:range xsd:integer .
+    rdfs:range xsd:integer ;
+    rdfs:label "weeks"@en ;
+    rdfs:comment "Weeks in chart associated with an entry."@en .
 
 pred:date a owl:DatatypeProperty ;
     rdfs:domain type:ChartEntry ;
-    rdfs:range xsd:date .
+    rdfs:range xsd:date ;
+    rdfs:label "date"@en ;
+    rdfs:comment "Date of the chart entry."@en .
 
 pred:popularity a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "popularity"@en ;
+    rdfs:comment "Popularity score of a song."@en .
 
 pred:energy a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "energy"@en ;
+    rdfs:comment "Audio feature score for perceived energy."@en .
 
 pred:danceability a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "danceability"@en ;
+    rdfs:comment "Audio feature score for danceability."@en .
 
 pred:tempo a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "tempo"@en ;
+    rdfs:comment "Tempo value in BPM-like scale."@en .
 
 pred:valence a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "valence"@en ;
+    rdfs:comment "Audio feature score for musical positiveness."@en .
 
 pred:loudness a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "loudness"@en ;
+    rdfs:comment "Audio feature for loudness."@en .
 
 pred:speechiness a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "speechiness"@en ;
+    rdfs:comment "Audio feature for spoken-word presence."@en .
 
 pred:acousticness a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "acousticness"@en ;
+    rdfs:comment "Audio feature for acoustic character."@en .
 
 pred:instrumentalness a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "instrumentalness"@en ;
+    rdfs:comment "Audio feature estimating absence of vocals."@en .
 
 pred:liveness a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:decimal .
+    rdfs:range xsd:decimal ;
+    rdfs:label "liveness"@en ;
+    rdfs:comment "Audio feature indicating live-audience presence."@en .
 
 pred:duration_ms a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:integer .
+    rdfs:range xsd:integer ;
+    rdfs:label "duration (ms)"@en ;
+    rdfs:comment "Song duration in milliseconds."@en .
 
 pred:explicit a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:boolean .
+    rdfs:range xsd:boolean ;
+    rdfs:label "explicit"@en ;
+    rdfs:comment "Whether the song is marked explicit."@en .
 
 pred:albumName a owl:DatatypeProperty ;
     rdfs:domain type:Song ;
-    rdfs:range xsd:string .
-
-# Propriedades de enriquecimento externo (DBpedia + Wikidata), preenchidas por
-# enrich_artists.py. Os artistas ficam ligados as entidades externas via owl:sameAs.
-pred:originCountry a owl:ObjectProperty ;
-    rdfs:domain type:Artist ;
-    rdfs:range type:Country .
+    rdfs:range xsd:string ;
+    rdfs:label "album name"@en ;
+    rdfs:comment "Legacy album name literal."@en .
 
 pred:originCountryLabel a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "origin country label"@en ;
+    rdfs:comment "Backward-compatible literal country label for artists."@en .
 
 pred:externalGenre a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "external genre"@en ;
+    rdfs:comment "Genre values imported from external knowledge bases."@en .
 
 pred:description a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "description"@en ;
+    rdfs:comment "Short textual description of artist (typically Wikidata)."@en .
 
 pred:abstract a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "abstract"@en ;
+    rdfs:comment "Biographical abstract of artist (typically DBpedia)."@en .
 
 pred:birthPlace a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "birth place"@en ;
+    rdfs:comment "Birth place imported from external data."@en .
 
 pred:birthDate a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:date .
+    rdfs:range xsd:date ;
+    rdfs:label "birth date"@en ;
+    rdfs:comment "Birth date of artist."@en .
 
 pred:inceptionDate a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:date .
+    rdfs:range xsd:date ;
+    rdfs:label "inception date"@en ;
+    rdfs:comment "Formation date or start year of artist/project."@en .
 
 pred:musicBrainzId a owl:DatatypeProperty ;
     rdfs:domain type:Artist ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:label "MusicBrainz ID"@en ;
+    rdfs:comment "MusicBrainz identifier for artist linking."@en .
 
-pred:image a owl:ObjectProperty ;
-    rdfs:domain type:Artist .
+pred:periodStart a owl:DatatypeProperty ;
+    rdfs:domain type:TimePeriod ;
+    rdfs:range xsd:date ;
+    rdfs:label "period start"@en ;
+    rdfs:comment "Start date of a time period."@en .
 
-pred:thumbnail a owl:ObjectProperty ;
-    rdfs:domain type:Artist .
-
-pred:website a owl:ObjectProperty ;
-    rdfs:domain type:Artist .
+pred:periodEnd a owl:DatatypeProperty ;
+    rdfs:domain type:TimePeriod ;
+    rdfs:range xsd:date ;
+    rdfs:label "period end"@en ;
+    rdfs:comment "End date of a time period."@en .
