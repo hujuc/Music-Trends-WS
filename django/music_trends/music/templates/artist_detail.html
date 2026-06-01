@@ -12,11 +12,17 @@
     <a href="{% url 'songs' %}" class="text-muted">← Songs Explorer</a>
   </p>
 
-  {% comment %} {# RDFa: the entire artist section is annotated with schema:MusicGroup.
-     vocab sets the default vocabulary; typeof declares the RDF type;
-     resource pins the subject URI so crawlers can dereference it.
-     owl:sameAs links are expressed as <link> elements inside the block. #} {% endcomment %}
-  <div vocab="https://schema.org/" typeof="MusicGroup" resource="{{ artist.uri }}">
+  {% comment %}
+    RDFa: the entire artist section is annotated with schema:Artist.
+    vocab sets the default vocabulary; typeof declares the RDF type;
+    resource pins the subject URI so crawlers can dereference it.
+    prefix declares xsd: and owl: so datatypes and sameAs resolve correctly.
+    owl:sameAs links are expressed as <link> elements inside the block.
+  {% endcomment %}
+  <div vocab="https://schema.org/"
+       typeof="Artist"
+       resource="{{ artist.uri }}"
+       prefix="xsd: http://www.w3.org/2001/XMLSchema# owl: http://www.w3.org/2002/07/owl#">
 
   {% if enrichment %}
     {% if enrichment.wikidata %}<link property="owl:sameAs" href="{{ enrichment.wikidata }}">{% endif %}
@@ -54,9 +60,10 @@
           {% if enrichment.country %}
             <div class="about-fact">
               <span class="about-key">Country</span>
-              <span class="about-val" property="foundingLocation">
+              <span class="about-val" property="foundingLocation"
+                {% if enrichment.country_uri %}resource="{{ enrichment.country_uri }}"{% endif %}>
                 {% if enrichment.country_uri %}
-                  <a href="{{ enrichment.country_uri }}" target="_blank" rel="noopener">{{ enrichment.country }}</a>
+                  <a href="{{ enrichment.country_uri }}" target="_blank">{{ enrichment.country }}</a>
                 {% else %}
                   {{ enrichment.country }}
                 {% endif %}
@@ -64,15 +71,15 @@
             </div>
           {% endif %}
           {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val" property="foundingLocation">{{ enrichment.birth_place }}</span></div>{% endif %}
-          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val" property="foundingDate">{{ enrichment.birth_date }}</span></div>{% endif %}
-          {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val" property="foundingDate">{{ enrichment.inception }}</span></div>{% endif %}
+          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val" property="foundingDate" datatype="xsd:date">{{ enrichment.birth_date }}</span></div>{% endif %}
+          {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val" property="foundingDate" datatype="xsd:date">{{ enrichment.inception }}</span></div>{% endif %}
         </div>
 
         <p class="about-links mt-1">
-          {% if enrichment.website %}<a property="url" href="{{ enrichment.website }}" target="_blank" rel="noopener">Official site ↗</a>{% endif %}
-          {% if enrichment.wikidata %}<a href="{{ enrichment.wikidata }}" target="_blank" rel="noopener">Wikidata ↗</a>{% endif %}
-          {% if enrichment.dbpedia %}<a href="{{ enrichment.dbpedia }}" target="_blank" rel="noopener">DBpedia ↗</a>{% endif %}
-          {% if enrichment.musicbrainz %}<a property="sameAs" href="{{ enrichment.musicbrainz }}" target="_blank" rel="noopener">MusicBrainz ↗</a>{% endif %}
+          {% if enrichment.website %}<a property="url" href="{{ enrichment.website }}" target="_blank">Official site ↗</a>{% endif %}
+          {% if enrichment.wikidata %}<a href="{{ enrichment.wikidata }}" target="_blank">Wikidata ↗</a>{% endif %}
+          {% if enrichment.dbpedia %}<a href="{{ enrichment.dbpedia }}" target="_blank">DBpedia ↗</a>{% endif %}
+          {% if enrichment.musicbrainz %}<a property="sameAs" href="{{ enrichment.musicbrainz }}" target="_blank">MusicBrainz ↗</a>{% endif %}
         </p>
         <p class="text-muted text-sm mt-1">Structured data: Wikidata. Biographical text: DBpedia.</p>
       </div>
@@ -180,7 +187,12 @@
             {% for c in collaborators %}
             <tr>
               <td class="text-muted">{{ forloop.counter }}</td>
-              <td><a href="{% url 'artist_detail' %}?uri={{ c.uri }}">{{ c.name }}</a></td>
+              <td>
+                <a href="{% url 'artist_detail' %}?uri={{ c.uri }}"
+                   typeof="Artist"
+                   resource="{{ c.uri }}"
+                   property="similar_to">{{ c.name }}</a>
+              </td>
               <td>{{ c.shared_songs }}</td>
               <td>{{ c.chart_overlap }}</td>
               <td>{{ c.score }}</td>
@@ -222,18 +234,33 @@
       </thead>
       <tbody>
         {% for song in songs %}
-        <tr>
-          <td><a href="{% url 'song_detail' %}?uri={{ song.uri }}">{{ song.name }}</a></td>
+        <tr typeof="MusicRecording" resource="{{ song.uri }}">
+          <td>
+            <a href="{% url 'song_detail' %}?uri={{ song.uri }}" property="name">{{ song.name }}</a>
+            <link property="byArtist" resource="{{ artist.uri }}">
+          </td>
           <td>
             {% if song.genre %}
-              <span class="badge">{{ song.genre }}</span>
+              <span class="badge" property="genre">{{ song.genre }}</span>
             {% else %}
               <span class="text-muted">—</span>
             {% endif %}
           </td>
-          <td>{% if song.popularity %}{{ song.popularity }}{% else %}—{% endif %}</td>
-          <td>{% if song.energy %}{{ song.energy }}{% else %}—{% endif %}</td>
-          <td>{% if song.danceability %}{{ song.danceability }}{% else %}—{% endif %}</td>
+          <td>
+            {% if song.popularity %}
+              <span property="popularity" datatype="xsd:decimal">{{ song.popularity }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if song.energy %}
+              <span property="energy" datatype="xsd:decimal">{{ song.energy }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if song.danceability %}
+              <span property="danceability" datatype="xsd:decimal">{{ song.danceability }}</span>
+            {% else %}—{% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
