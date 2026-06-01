@@ -60,7 +60,7 @@
           {% if enrichment.country %}
             <div class="about-fact">
               <span class="about-key">Country</span>
-              <span class="about-val" property="foundingLocation"
+              <span class="about-val" property="birthPlace"
                 {% if enrichment.country_uri %}resource="{{ enrichment.country_uri }}"{% endif %}>
                 {% if enrichment.country_uri %}
                   <a href="{{ enrichment.country_uri }}" target="_blank">{{ enrichment.country }}</a>
@@ -70,8 +70,8 @@
               </span>
             </div>
           {% endif %}
-          {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val" property="foundingLocation">{{ enrichment.birth_place }}</span></div>{% endif %}
-          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val" property="foundingDate" datatype="xsd:date">{{ enrichment.birth_date }}</span></div>{% endif %}
+          {% if enrichment.birth_place %}<div class="about-fact"><span class="about-key">From</span><span class="about-val" property="birthPlace">{{ enrichment.birth_place }}</span></div>{% endif %}
+          {% if enrichment.birth_date %}<div class="about-fact"><span class="about-key">Born</span><span class="about-val" property="birthDate" datatype="xsd:date">{{ enrichment.birth_date }}</span></div>{% endif %}
           {% if enrichment.inception %}<div class="about-fact"><span class="about-key">Active since</span><span class="about-val" property="foundingDate" datatype="xsd:date">{{ enrichment.inception }}</span></div>{% endif %}
         </div>
 
