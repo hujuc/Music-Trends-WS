@@ -35,3 +35,6 @@ Thumbs.db
 
 # Node leftovers (if any)
 node_modules/
+
+# Artist enrichment build cache
+normalizing_data/enrichment_cache.json

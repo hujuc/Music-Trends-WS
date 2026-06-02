@@ -13,6 +13,26 @@
   --warning: #f59e0b;
 }
 
+/* Light theme (toggled via the navbar button; persisted in localStorage). */
+:root[data-theme="light"] {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface2: #eceef5;
+  --border: #d7dded;
+  --accent: #7c3aed;
+  --accent2: #0e7490;
+  --accent-hover: #6d28d9;
+  --text: #1e2433;
+  --text-muted: #5b6478;
+  --success: #059669;
+  --error: #dc2626;
+  --warning: #b45309;
+}
+
+body, nav, .card, .stat-card {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -159,6 +179,24 @@ code {
 table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.songs-table {
+  table-layout: fixed;
+}
+
+.songs-table-col-song { width: 35%; }
+.songs-table-col-artist { width: 30%; }
+.songs-table-col-genres { width: 35%; }
+
+.songs-table-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.songs-table-cell-genres {
+  white-space: normal;
 }
 
 .table-scroll {
@@ -551,7 +589,7 @@ button:hover, .btn:hover {
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(23, 24, 56, 0.96);
+  background: var(--surface);
   box-shadow: 0 6px 18px rgba(8, 8, 28, 0.45);
   text-decoration: none;
   z-index: 3;
@@ -661,4 +699,106 @@ button:hover, .btn:hover {
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
   .nav-links { display: none; }
+}
+
+/* ── Artist genres row (with source tooltip) ─────────────────────────────── */
+.artist-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.85rem 0 2rem;
+}
+.artist-genres .badge { cursor: help; }
+
+/* ── Artist "About" card (DBpedia + Wikidata enrichment) ─────────────────── */
+.artist-about { border-left: 3px solid var(--accent); }
+.about-grid {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+.about-photo {
+  flex: 0 0 auto;
+  width: 110px;
+  height: 110px;
+  max-width: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.about-body { flex: 1; min-width: 0; }
+.about-body h2 { margin-bottom: 0.5rem; }
+.about-desc { font-size: 1.05rem; font-weight: 500; margin: 0 0 0.35rem; }
+
+.about-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  gap: 0.9rem 2.25rem;
+  margin: 1rem 0;
+  padding: 0.95rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.about-fact { display: flex; flex-direction: column; gap: 0.25rem; }
+.about-key {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.about-val { font-size: 0.95rem; color: var(--text); }
+
+.about-links { display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem; margin-top: 0.85rem; }
+.about-links a { color: var(--accent2); font-size: 0.9rem; font-weight: 500; }
+.about-links a:hover { text-decoration: underline; }
+
+@media (max-width: 560px) {
+  .about-grid { flex-direction: column; align-items: center; text-align: center; }
+  .about-facts { justify-content: center; }
+  .about-links { justify-content: center; }
+}
+
+/* ── Theme toggle button ─────────────────────────────────────────────────── */
+.theme-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+.theme-toggle:hover { border-color: var(--accent); background: var(--surface); }
+.theme-toggle:active { transform: scale(0.92); }
+
+/* ── Light-theme fixes for components with hardcoded (dark-tuned) colors ──── */
+:root[data-theme="light"] .badge-accent {
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.35);
+  color: #6d28d9;
+}
+:root[data-theme="light"] .alert-error {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #b91c1c;
+}
+:root[data-theme="light"] .alert-success {
+  background: rgba(5, 150, 105, 0.08);
+  border-color: rgba(5, 150, 105, 0.3);
+  color: #047857;
+}
+:root[data-theme="light"] .node-score { color: #6d28d9; }
+:root[data-theme="light"] .graph-center-node {
+  background: rgba(124, 58, 237, 0.92);
+  border-color: var(--accent);
+  color: #ffffff;
 }
